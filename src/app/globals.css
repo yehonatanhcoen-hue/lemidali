@@ -1,26 +1,130 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --surface-2: #f0f2f5;
+  --line: #e4e7ec;
+  --ink: #101828;
+  --ink-2: #475467;
+  --muted: #8a94a6;
+  --accent: #4f46e5;
+  --accent-ink: #ffffff;
+  --accent-soft: #eef0ff;
+  --success: #12a150;
+  --success-soft: #e6f6ec;
+  --warn: #d97706;
+  --warn-soft: #fdf3e2;
+  --danger: #dc2626;
+  --danger-soft: #fdecec;
+  --track: #e9ecf1;
+  --shadow: 0 1px 2px rgb(16 24 40 / 0.04), 0 4px 16px rgb(16 24 40 / 0.04);
+  color-scheme: light;
+}
+
+.dark {
+  --bg: #0b0d12;
+  --surface: #141821;
+  --surface-2: #1b2030;
+  --line: #262c3b;
+  --ink: #f2f4f7;
+  --ink-2: #b4bccb;
+  --muted: #7b8496;
+  --accent: #8b85ff;
+  --accent-ink: #0b0d12;
+  --accent-soft: #1f1d3d;
+  --success: #3ecf7a;
+  --success-soft: #11291c;
+  --warn: #f5a524;
+  --warn-soft: #2e2210;
+  --danger: #f26b6b;
+  --danger-soft: #2f1517;
+  --track: #232938;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+  color-scheme: dark;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-track: var(--track);
+  --font-sans: "Rubik Variable", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --shadow-card: var(--shadow);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* numbers & latin stay readable inside RTL text */
+.num {
+  font-variant-numeric: tabular-nums;
+  unicode-bidi: isolate;
+}
+
+/* ---------- motion (small, purposeful) ---------- */
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes pop {
+  0% { transform: scale(0.6); opacity: 0; }
+  60% { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); }
+}
+@keyframes ring {
+  from { box-shadow: 0 0 0 0 color-mix(in srgb, var(--success) 45%, transparent); }
+  to { box-shadow: 0 0 0 18px transparent; }
+}
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-5px); }
+  40%, 80% { transform: translateX(5px); }
+}
+
+.anim-rise { animation: rise 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.anim-pop { animation: pop 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+.anim-ring { animation: ring 0.9s ease-out; }
+.anim-shake { animation: shake 0.4s ease-in-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* User-entered text (titles, descriptions, answers) may be Hebrew or English.
+   plaintext picks the direction per paragraph so punctuation lands correctly,
+   while alignment still follows the RTL layout. */
+h1, h2, h3, p, .ut {
+  unicode-bidi: plaintext;
+  text-align: right; /* keep the RTL page alignment even for English text */
+}
+.text-center :is(h1, h2, h3, p, .ut) {
+  text-align: center;
 }
