@@ -203,3 +203,16 @@ export const IconLock = (p: P) => (
     <path d="M8 11V8a4 4 0 0 1 8 0v3" />
   </Base>
 );
+export const IconPalette = (p: P) => (
+  <Base {...p}>
+    <path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.8-.9 1.8-1.9 0-.5-.2-.9-.5-1.3-.3-.3-.5-.8-.5-1.3 0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z" />
+    <circle cx="7.5" cy="11" r="1.2" />
+    <circle cx="10.5" cy="7" r="1.2" />
+    <circle cx="15" cy="7.5" r="1.2" />
+  </Base>
+);
+export const IconTextSize = (p: P) => (
+  <Base {...p}>
+    <path d="M3 18 8 6l5 12M4.6 14h6.8M15 18l3-7 3 7M15.9 16h4.2" />
+  </Base>
+);

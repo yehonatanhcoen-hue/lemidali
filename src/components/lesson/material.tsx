@@ -211,7 +211,7 @@ function MaterialItem({
               <span
                 className={cx(
                   "grid size-5 place-items-center rounded-md border-2",
-                  viewed ? "border-success bg-success text-white" : "border-line",
+                  viewed ? "border-success bg-success text-success-ink" : "border-line",
                 )}
               >
                 {viewed && <IconCheck size={12} strokeWidth={3} className="anim-pop" />}
@@ -237,7 +237,7 @@ function DoneToggle({ checked, onClick, disabled, label }: { checked: boolean; o
         checked ? "border-success/40 bg-success-soft text-success" : "border-line bg-surface hover:border-accent/50 hover:bg-surface-2",
       )}
     >
-      <span className={cx("grid size-6 shrink-0 place-items-center rounded-md border-2 transition", checked ? "border-success bg-success text-white" : "border-line")}>
+      <span className={cx("grid size-6 shrink-0 place-items-center rounded-md border-2 transition", checked ? "border-success bg-success text-success-ink" : "border-line")}>
         {checked && <IconCheck size={14} strokeWidth={3} className="anim-pop" />}
       </span>
       <span className="font-medium">{label}</span>

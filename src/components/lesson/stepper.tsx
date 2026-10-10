@@ -38,7 +38,7 @@ export function Stepper({ done }: { done: Record<StepKey, boolean> }) {
                 className={cx(
                   "num grid size-8 place-items-center rounded-full border-2 text-sm font-semibold transition-all duration-500",
                   isDone
-                    ? "border-success bg-success text-white"
+                    ? "border-success bg-success text-success-ink"
                     : isCurrent
                       ? "border-accent bg-surface text-accent ring-4 ring-accent/15"
                       : "border-line bg-surface text-muted",

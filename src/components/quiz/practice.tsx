@@ -33,7 +33,7 @@ export function PracticeFlow({
   if (done)
     return (
       <div className="space-y-5 text-center anim-rise" data-testid="practice-result">
-        <span className={`mx-auto grid size-14 place-items-center rounded-full ${done.left.length ? "bg-warn-soft text-warn" : "bg-success text-white anim-pop"}`}>
+        <span className={`mx-auto grid size-14 place-items-center rounded-full ${done.left.length ? "bg-warn-soft text-warn" : "bg-success text-success-ink anim-pop"}`}>
           {done.left.length ? <IconTarget size={26} /> : <IconCheck size={28} strokeWidth={2.6} />}
         </span>
         <div>

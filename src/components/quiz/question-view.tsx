@@ -129,9 +129,9 @@ export function QuestionView({
                     "grid size-8 shrink-0 place-items-center text-sm font-semibold transition",
                     isMulti ? "rounded-md" : "rounded-lg",
                     state === "correct" || state === "missed"
-                      ? "bg-success text-white"
+                      ? "bg-success text-success-ink"
                       : state === "wrong"
-                        ? "bg-danger text-white"
+                        ? "bg-danger text-danger-ink"
                         : state === "chosen"
                           ? "bg-accent text-accent-ink"
                           : "bg-surface-2 text-ink-2",

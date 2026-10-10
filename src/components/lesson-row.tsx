@@ -71,7 +71,7 @@ export function ExamRow({ data, topic, quiz, gate }: { data: CourseData; topic: 
         {locked ? (
           <LockDot />
         ) : (
-          <span className={cx("grid size-9 shrink-0 place-items-center rounded-full", qs.passed && qs.count ? "bg-success text-white" : "bg-accent text-accent-ink")}>
+          <span className={cx("grid size-9 shrink-0 place-items-center rounded-full", qs.passed && qs.count ? "bg-success text-success-ink" : "bg-accent text-accent-ink")}>
             {qs.passed && qs.count ? <IconCheck size={18} strokeWidth={2.4} /> : <IconTrophy size={18} />}
           </span>
         )}

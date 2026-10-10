@@ -3,46 +3,305 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
+  --f-rubik: "Rubik Variable", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --f-heebo: "Heebo Variable", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --f-assistant: "Assistant Variable", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --f-frank: "Frank Ruhl Libre Variable", "Times New Roman", serif;
+  --f-varela: "Varela Round", "Rubik Variable", system-ui, sans-serif;
+}
+
+/* ---------- themes ----------
+   Each theme sets colors + shape (radius, fonts, button "press") on [data-theme].
+   The same selectors scope a theme to any element, so the theme picker renders
+   real previews by wrapping a mini screen in data-theme="…".
+   Dark variants apply under .dark (set on <html> from the saved mode). */
+[data-theme="clear"] {
   --bg: #f5f6f8;
   --surface: #ffffff;
   --surface-2: #f0f2f5;
   --line: #e4e7ec;
   --ink: #101828;
   --ink-2: #475467;
-  --muted: #8a94a6;
+  --muted: #7c8698;
   --accent: #4f46e5;
   --accent-ink: #ffffff;
   --accent-soft: #eef0ff;
   --success: #12a150;
+  --success-ink: #ffffff;
   --success-soft: #e6f6ec;
-  --warn: #d97706;
+  --warn: #b45309;
   --warn-soft: #fdf3e2;
   --danger: #dc2626;
+  --danger-ink: #ffffff;
   --danger-soft: #fdecec;
   --track: #e9ecf1;
+  --r-card: 1rem;
+  --r-ctl: 0.75rem;
+  --r-sm: 0.5rem;
+  --font-body: var(--f-rubik);
+  --font-display: var(--f-rubik);
+  --display-weight: 700;
+  --press: none;
+  --card-border: 1px;
   --shadow: 0 1px 2px rgb(16 24 40 / 0.04), 0 4px 16px rgb(16 24 40 / 0.04);
   color-scheme: light;
 }
 
-.dark {
+.dark[data-theme="clear"],
+.dark [data-theme="clear"],
+[data-theme="clear"][data-mode="dark"] {
   --bg: #0b0d12;
   --surface: #141821;
   --surface-2: #1b2030;
   --line: #262c3b;
   --ink: #f2f4f7;
   --ink-2: #b4bccb;
-  --muted: #7b8496;
+  --muted: #7f889a;
   --accent: #8b85ff;
   --accent-ink: #0b0d12;
   --accent-soft: #1f1d3d;
   --success: #3ecf7a;
+  --success-ink: #0b0d12;
   --success-soft: #11291c;
   --warn: #f5a524;
   --warn-soft: #2e2210;
   --danger: #f26b6b;
+  --danger-ink: #0b0d12;
   --danger-soft: #2f1517;
   --track: #232938;
   --shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+  color-scheme: dark;
+}
+
+[data-theme="paper"] {
+  --bg: #f6f1e7;
+  --surface: #fbf8f2;
+  --surface-2: #efe8da;
+  --line: #e3dac7;
+  --ink: #2b2a26;
+  --ink-2: #5c574c;
+  --muted: #7f786a;
+  --accent: #2f6b4f;
+  --accent-ink: #ffffff;
+  --accent-soft: #e2ede5;
+  --success: #3f7a2a;
+  --success-ink: #ffffff;
+  --success-soft: #e7efdb;
+  --warn: #a1610f;
+  --warn-soft: #f6ecd6;
+  --danger: #b42318;
+  --danger-ink: #ffffff;
+  --danger-soft: #f8e4df;
+  --track: #e8e0cf;
+  --r-card: 0.625rem;
+  --r-ctl: 0.5rem;
+  --r-sm: 0.375rem;
+  --font-body: var(--f-assistant);
+  --font-display: var(--f-frank);
+  --display-weight: 600;
+  --press: none;
+  --card-border: 1px;
+  --shadow: 0 1px 0 rgb(43 42 38 / 0.04);
+  color-scheme: light;
+}
+
+.dark[data-theme="paper"],
+.dark [data-theme="paper"],
+[data-theme="paper"][data-mode="dark"] {
+  --bg: #1b1915;
+  --surface: #24211c;
+  --surface-2: #2c2923;
+  --line: #3a362e;
+  --ink: #efe8da;
+  --ink-2: #c4bba8;
+  --muted: #958d7d;
+  --accent: #86bf9b;
+  --accent-ink: #14201a;
+  --accent-soft: #23332a;
+  --success: #a3c977;
+  --success-ink: #1b1915;
+  --success-soft: #263220;
+  --warn: #e0a458;
+  --warn-soft: #352a18;
+  --danger: #ef8a7a;
+  --danger-ink: #1b1915;
+  --danger-soft: #3a1f1b;
+  --track: #36322a;
+  --shadow: none;
+  color-scheme: dark;
+}
+
+[data-theme="night"] {
+  --bg: #f2f5f9;
+  --surface: #ffffff;
+  --surface-2: #e9eef4;
+  --line: #d9e0ea;
+  --ink: #0f1522;
+  --ink-2: #475569;
+  --muted: #6f7a8e;
+  --accent: #0f766e;
+  --accent-ink: #ffffff;
+  --accent-soft: #dcf3f0;
+  --success: #15803d;
+  --success-ink: #ffffff;
+  --success-soft: #e3f5e8;
+  --warn: #b45309;
+  --warn-soft: #fdf1df;
+  --danger: #dc2626;
+  --danger-ink: #ffffff;
+  --danger-soft: #fdecec;
+  --track: #e2e8f0;
+  --r-card: 1rem;
+  --r-ctl: 0.75rem;
+  --r-sm: 0.5rem;
+  --font-body: var(--f-heebo);
+  --font-display: var(--f-heebo);
+  --display-weight: 700;
+  --press: none;
+  --card-border: 1px;
+  --shadow: 0 1px 2px rgb(15 21 34 / 0.05), 0 6px 18px rgb(15 21 34 / 0.05);
+  color-scheme: light;
+}
+
+.dark[data-theme="night"],
+.dark [data-theme="night"],
+[data-theme="night"][data-mode="dark"] {
+  --bg: #0f1522;
+  --surface: #172033;
+  --surface-2: #1d2840;
+  --line: #28344d;
+  --ink: #e6eaf2;
+  --ink-2: #aab3c5;
+  --muted: #8590a5;
+  --accent: #2dd4bf;
+  --accent-ink: #0f1522;
+  --accent-soft: #123a3b;
+  --success: #4ade80;
+  --success-ink: #0f1522;
+  --success-soft: #12301f;
+  --warn: #f5b544;
+  --warn-soft: #33270f;
+  --danger: #f87171;
+  --danger-ink: #0f1522;
+  --danger-soft: #3a1a1d;
+  --track: #28344d;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.35);
+  color-scheme: dark;
+}
+
+[data-theme="energy"] {
+  --bg: #fff7ee;
+  --surface: #ffffff;
+  --surface-2: #fff0e2;
+  --line: #ffe1c7;
+  --ink: #2a1e17;
+  --ink-2: #6b5446;
+  --muted: #9a7a63;
+  --accent: #d4401f;
+  --accent-ink: #ffffff;
+  --accent-soft: #ffe6de;
+  --success: #1f9d5c;
+  --success-ink: #ffffff;
+  --success-soft: #ddf5e8;
+  --warn: #b86e00;
+  --warn-soft: #fff1cc;
+  --danger: #d93a40;
+  --danger-ink: #ffffff;
+  --danger-soft: #fde4e4;
+  --track: #ffe9d6;
+  --r-card: 1.375rem;
+  --r-ctl: 1rem;
+  --r-sm: 0.75rem;
+  --font-body: var(--f-rubik);
+  --font-display: var(--f-varela);
+  --display-weight: 400;
+  --press: 0 3px 0 color-mix(in srgb, var(--accent) 72%, black);
+  --card-border: 2px;
+  --shadow: 0 2px 0 rgb(255 225 199 / 0.9);
+  color-scheme: light;
+}
+
+.dark[data-theme="energy"],
+.dark [data-theme="energy"],
+[data-theme="energy"][data-mode="dark"] {
+  --bg: #1c1410;
+  --surface: #261c16;
+  --surface-2: #30241c;
+  --line: #42322a;
+  --ink: #fff1e6;
+  --ink-2: #dcc3b2;
+  --muted: #a88b78;
+  --accent: #ff7a57;
+  --accent-ink: #1c1410;
+  --accent-soft: #3d2219;
+  --success: #4bd58f;
+  --success-ink: #1c1410;
+  --success-soft: #15301f;
+  --warn: #ffc53d;
+  --warn-soft: #3a2d0d;
+  --danger: #ff6b6b;
+  --danger-ink: #1c1410;
+  --danger-soft: #3d1a1a;
+  --track: #42322a;
+  --shadow: 0 2px 0 rgb(0 0 0 / 0.35);
+  color-scheme: dark;
+}
+
+[data-theme="minimal"] {
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f5f5f5;
+  --line: #e5e5e5;
+  --ink: #0a0a0a;
+  --ink-2: #404040;
+  --muted: #6e6e6e;
+  --accent: #0a0a0a;
+  --accent-ink: #ffffff;
+  --accent-soft: #f0f0f0;
+  --success: #15803d;
+  --success-ink: #ffffff;
+  --success-soft: #e8f5ec;
+  --warn: #b45309;
+  --warn-soft: #fdf2e2;
+  --danger: #b91c1c;
+  --danger-ink: #ffffff;
+  --danger-soft: #fbe9e9;
+  --track: #e5e5e5;
+  --r-card: 0.25rem;
+  --r-ctl: 0.125rem;
+  --r-sm: 0.125rem;
+  --font-body: var(--f-assistant);
+  --font-display: var(--f-assistant);
+  --display-weight: 700;
+  --press: none;
+  --card-border: 1px;
+  --shadow: none;
+  color-scheme: light;
+}
+
+.dark[data-theme="minimal"],
+.dark [data-theme="minimal"],
+[data-theme="minimal"][data-mode="dark"] {
+  --bg: #0a0a0a;
+  --surface: #121212;
+  --surface-2: #1c1c1c;
+  --line: #2a2a2a;
+  --ink: #fafafa;
+  --ink-2: #c7c7c7;
+  --muted: #8f8f8f;
+  --accent: #fafafa;
+  --accent-ink: #0a0a0a;
+  --accent-soft: #222222;
+  --success: #4ade80;
+  --success-ink: #0a0a0a;
+  --success-soft: #10261a;
+  --warn: #fbbf24;
+  --warn-soft: #2b210b;
+  --danger: #f87171;
+  --danger-ink: #0a0a0a;
+  --danger-soft: #2f1414;
+  --track: #2a2a2a;
+  --shadow: none;
   color-scheme: dark;
 }
 
@@ -57,6 +316,8 @@
   --color-accent: var(--accent);
   --color-accent-ink: var(--accent-ink);
   --color-accent-soft: var(--accent-soft);
+  --color-success-ink: var(--success-ink);
+  --color-danger-ink: var(--danger-ink);
   --color-success: var(--success);
   --color-success-soft: var(--success-soft);
   --color-warn: var(--warn);
@@ -64,7 +325,12 @@
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
   --color-track: var(--track);
-  --font-sans: "Rubik Variable", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --font-sans: var(--font-body);
+  --radius-md: var(--r-sm);
+  --radius-lg: var(--r-sm);
+  --radius-xl: var(--r-ctl);
+  --radius-2xl: var(--r-card);
+  --radius-3xl: calc(var(--r-card) + 0.5rem);
   --shadow-card: var(--shadow);
 }
 
@@ -75,8 +341,25 @@ html {
 body {
   background: var(--bg);
   color: var(--ink);
-  font-family: var(--font-sans);
+  font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
+}
+
+/* Text size (Appearance page). Everything is in rem, so the whole UI scales. */
+html[data-size="sm"] { font-size: 15px; }
+html[data-size="lg"] { font-size: 17.5px; }
+html[data-size="xl"] { font-size: 19px; }
+
+/* Display font for headings. Varela Round (Energy) has one weight — never fake-bold it. */
+h1, h2, .font-display {
+  font-family: var(--font-display);
+  font-synthesis-weight: none;
+}
+
+/* Visible keyboard focus in every theme */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 /* numbers & latin stay readable inside RTL text */

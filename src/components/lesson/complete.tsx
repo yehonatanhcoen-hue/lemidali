@@ -48,7 +48,7 @@ export function CompleteSection({
   if (completed)
     return (
       <div className="space-y-5 text-center" data-testid="lesson-completed">
-        <span className={cx("mx-auto grid size-16 place-items-center rounded-full bg-success text-white", justCompleted && "anim-pop anim-ring")}>
+        <span className={cx("mx-auto grid size-16 place-items-center rounded-full bg-success text-success-ink", justCompleted && "anim-pop anim-ring")}>
           <IconCheck size={32} strokeWidth={2.6} />
         </span>
         <div className="text-xl font-bold">{justCompleted ? "כל הכבוד! השיעור הושלם" : "השיעור הושלם"}</div>
@@ -101,7 +101,7 @@ export function CompleteSection({
             key={s.key}
             className={cx("flex items-center gap-2.5 rounded-xl px-3.5 py-3 text-sm", steps[s.key] ? "bg-success-soft text-success" : "bg-surface-2 text-muted")}
           >
-            <span className={cx("grid size-5 place-items-center rounded-full", steps[s.key] ? "bg-success text-white" : "border-2 border-line")}>
+            <span className={cx("grid size-5 place-items-center rounded-full", steps[s.key] ? "bg-success text-success-ink" : "border-2 border-line")}>
               {steps[s.key] && <IconCheck size={12} strokeWidth={3} />}
             </span>
             {s.key === "quiz" && qs.hasQuestions ? (steps.quiz ? "מבחן — עבר" : "מבחן — לא עבר") : s.label}

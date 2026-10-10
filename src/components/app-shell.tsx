@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useState } from "react";
+import { useAppearance } from "@/lib/appearance";
 import { useAuth } from "@/lib/auth";
 import { useCourse } from "@/lib/store";
 import type { CourseData } from "@/lib/types";
 import { importDemo } from "@/lib/importer";
-import { IconBook, IconChart, IconHome, IconMoon, IconSliders, IconSun, IconTarget, IconUpload } from "./icons";
+import { IconBook, IconChart, IconHome, IconMoon, IconPalette, IconSliders, IconSun, IconTarget, IconUpload } from "./icons";
 import { Button, ButtonLink, Card, Skeleton, cx } from "./ui";
 
 const NAV = [
@@ -18,29 +19,18 @@ const NAV = [
   { href: "/manage", label: "ניהול", icon: IconSliders, match: (p: string) => p.startsWith("/manage") },
 ];
 
-function ThemeToggle({ compact }: { compact?: boolean }) {
-  const [dark, setDark] = useState<boolean | null>(null);
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- read theme set by the inline head script
-    setDark(document.documentElement.classList.contains("dark"));
-  }, []);
-  const toggle = () => {
-    const next = !dark;
-    setDark(next);
-    document.documentElement.classList.toggle("dark", next);
-    try {
-      localStorage.setItem("lemidali:theme", next ? "dark" : "light");
-    } catch {}
-  };
+/** Quick light/dark switch. Theme, auto mode and text size live on the Appearance page. */
+function ModeToggle({ compact }: { compact?: boolean }) {
+  const { dark, set } = useAppearance();
   const label = dark ? "מצב בהיר" : "מצב כהה";
   return (
     <button
-      onClick={toggle}
+      onClick={() => set({ mode: dark ? "light" : "dark" })}
       aria-label={label}
       title={label}
       className={cx(
         "flex items-center gap-3 rounded-xl text-sm text-ink-2 transition hover:bg-surface-2 hover:text-ink",
-        compact ? "size-10 justify-center" : "h-10 w-full px-3",
+        compact ? "size-10 justify-center" : "h-10 w-full px-3 md:justify-center lg:justify-start",
       )}
     >
       {dark ? <IconSun /> : <IconMoon />}
@@ -86,8 +76,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </button>
             </div>
           )}
-          <div className="flex justify-center lg:block">
-            <ThemeToggle />
+          <div className="flex flex-col items-center gap-1 lg:items-stretch">
+            <AppearanceLink />
+            <ModeToggle />
           </div>
         </div>
       </aside>
@@ -98,7 +89,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <span className="grid size-8 place-items-center rounded-lg bg-accent text-sm font-bold text-accent-ink">ל</span>
           <span className="font-bold">לומדה</span>
         </Link>
-        <ThemeToggle compact />
+        <div className="flex items-center gap-1">
+          <Link href="/appearance" aria-label="מראה וערכות נושא" title="מראה" className="grid size-10 place-items-center rounded-xl text-ink-2 transition hover:bg-surface-2 hover:text-ink">
+            <IconPalette />
+          </Link>
+          <ModeToggle compact />
+        </div>
       </div>
 
       <main className="min-w-0 flex-1 px-4 pt-6 pb-28 sm:px-6 md:px-10 md:pt-10 md:pb-16">
@@ -110,6 +106,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <BottomNavActive />
       </Suspense>
     </div>
+  );
+}
+
+function AppearanceLink() {
+  return (
+    <Link
+      href="/appearance"
+      title="מראה"
+      className="flex h-10 w-full items-center gap-3 rounded-xl px-3 text-sm text-ink-2 transition hover:bg-surface-2 hover:text-ink md:justify-center lg:justify-start"
+    >
+      <IconPalette />
+      <span className="hidden lg:inline">מראה וערכות נושא</span>
+    </Link>
   );
 }
 
@@ -155,11 +164,13 @@ function BottomNav({ pathname }: { pathname: string }) {
               key={href}
               href={href}
               className={cx(
-                "flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition",
+                "flex min-h-14 flex-col items-center justify-center gap-1 py-2 text-xs font-medium transition",
                 active ? "text-accent" : "text-muted",
               )}
             >
-              <Icon size={22} />
+              <span className={cx("grid h-7 w-12 place-items-center rounded-full transition", active && "bg-accent-soft")}>
+                <Icon size={21} />
+              </span>
               {label}
             </Link>
           );

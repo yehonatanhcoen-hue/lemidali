@@ -40,6 +40,8 @@ function DashboardView({ data }: { data: CourseData }) {
       </header>
 
       <div className="grid gap-4 lg:grid-cols-5">
+        {/* the next step comes first — on phones it is the first thing on screen */}
+        <ContinueCard data={data} />
         <Card className="p-6 anim-rise lg:col-span-2" data-testid="overall-progress">
           <div className="text-sm font-medium text-ink-2">התקדמות כוללת</div>
           <div className="mt-3 flex items-end justify-between gap-4">
@@ -55,7 +57,6 @@ function DashboardView({ data }: { data: CourseData }) {
             <ProgressBar percent={overall.percent} size="lg" label="התקדמות כוללת" />
           </div>
         </Card>
-        <ContinueCard data={data} />
       </div>
 
       {wrong > 0 && (
@@ -103,7 +104,7 @@ function DashboardView({ data }: { data: CourseData }) {
                         </span>
                       ) : (
                         done && (
-                          <span className="grid size-7 shrink-0 place-items-center rounded-full bg-success text-white anim-pop">
+                          <span className="grid size-7 shrink-0 place-items-center rounded-full bg-success text-success-ink anim-pop">
                             <IconCheck size={15} strokeWidth={2.6} />
                           </span>
                         )
@@ -169,9 +170,9 @@ function ContinueCard({ data }: { data: CourseData }) {
 
   return (
     <Link href={itemHref(next)} className="group anim-rise lg:col-span-3" style={{ animationDelay: "60ms" }} data-testid="continue-card">
-      <div className="relative h-full overflow-hidden rounded-2xl bg-accent p-6 text-accent-ink shadow-card transition group-hover:-translate-y-0.5">
-        <div className="pointer-events-none absolute -top-16 -left-10 size-56 rounded-full bg-white/10" aria-hidden />
-        <div className="pointer-events-none absolute -bottom-20 left-24 size-40 rounded-full bg-white/10" aria-hidden />
+      <div className="relative h-full overflow-hidden rounded-2xl bg-accent p-6 text-accent-ink shadow-[var(--press)] transition group-hover:-translate-y-0.5">
+        <div className="pointer-events-none absolute -top-16 -left-10 size-56 rounded-full bg-accent-ink/10" aria-hidden />
+        <div className="pointer-events-none absolute -bottom-20 left-24 size-40 rounded-full bg-accent-ink/10" aria-hidden />
         <div className="relative flex h-full flex-col">
           <div className="text-sm font-medium opacity-80">{resume ? "המשך מאיפה שעצרת" : "המשך ללמוד"}</div>
           <div className="num mt-2 text-2xl font-bold sm:text-3xl">
@@ -200,7 +201,7 @@ function ContinueCard({ data }: { data: CourseData }) {
                 </span>
               )}
             </div>
-            <span className="inline-flex h-11 items-center gap-2 rounded-xl bg-white px-5 text-sm font-semibold text-[#1e1b4b] transition group-hover:gap-3">
+            <span className="inline-flex h-11 items-center gap-2 rounded-xl bg-surface px-5 text-sm font-semibold text-accent transition group-hover:gap-3">
               <IconPlay size={16} />
               {resume ? "המשך" : "התחל"}
             </span>

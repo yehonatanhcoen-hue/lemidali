@@ -1,6 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import "@fontsource-variable/rubik"; // self-hosted (works offline, no Google Fonts request)
+import "@fontsource-variable/rubik"; // self-hosted fonts (work offline, no Google Fonts request)
+import "@fontsource-variable/heebo";
+import "@fontsource-variable/assistant";
+import "@fontsource-variable/frank-ruhl-libre";
+import "@fontsource/varela-round";
 import { AppShell } from "@/components/app-shell";
+import { AppearanceProvider } from "@/lib/appearance";
+import { appearanceScript } from "@/lib/appearance-script";
 import { AuthGate } from "@/lib/auth";
 import { CourseProvider } from "@/lib/store";
 import "./globals.css";
@@ -21,26 +27,27 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f5f6f8" },
-    { media: "(prefers-color-scheme: dark)", color: "#0b0d12" },
+    // default theme (Energy); updated at runtime to the chosen theme
+    { media: "(prefers-color-scheme: light)", color: "#fff7ee" },
+    { media: "(prefers-color-scheme: dark)", color: "#1c1410" },
   ],
 };
 
-// Applies the saved/system theme before paint to avoid a light→dark flash.
-const themeScript = `try{var t=localStorage.getItem("lemidali:theme");if(t==="dark"||(!t&&matchMedia("(prefers-color-scheme: dark)").matches))document.documentElement.classList.add("dark")}catch(e){}`;
-
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="he" dir="rtl" suppressHydrationWarning>
+    <html lang="he" dir="rtl" data-theme="energy" data-size="md" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        {/* applies the saved theme, mode and text size before paint (no flash) */}
+        <script dangerouslySetInnerHTML={{ __html: appearanceScript }} />
       </head>
       <body>
-        <AuthGate>
-          <CourseProvider>
-            <AppShell>{children}</AppShell>
-          </CourseProvider>
-        </AuthGate>
+        <AppearanceProvider>
+          <AuthGate>
+            <CourseProvider>
+              <AppShell>{children}</AppShell>
+            </CourseProvider>
+          </AuthGate>
+        </AppearanceProvider>
       </body>
     </html>
   );

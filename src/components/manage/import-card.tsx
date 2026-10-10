@@ -139,7 +139,7 @@ export function ImportCard() {
       {state.kind === "done" && (
         <Modal title="הייבוא הושלם" onClose={() => setState({ kind: "idle" })}>
           <div className="text-center" data-testid="import-done">
-            <span className="mx-auto grid size-14 place-items-center rounded-full bg-success text-white anim-pop">
+            <span className="mx-auto grid size-14 place-items-center rounded-full bg-success text-success-ink anim-pop">
               <IconCheck size={28} strokeWidth={2.6} />
             </span>
             <p className="ut mt-4 font-semibold">{state.title}</p>

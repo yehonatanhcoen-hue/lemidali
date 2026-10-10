@@ -33,7 +33,7 @@ export function Section({
         <span
           className={cx(
             "num grid size-8 place-items-center rounded-full text-sm font-semibold transition-colors duration-500",
-            done ? "bg-success text-white" : showLock ? "bg-surface-2 text-muted" : "bg-accent-soft text-accent",
+            done ? "bg-success text-success-ink" : showLock ? "bg-surface-2 text-muted" : "bg-accent-soft text-accent",
           )}
         >
           {done ? <IconCheck size={16} strokeWidth={2.6} className="anim-pop" /> : step}

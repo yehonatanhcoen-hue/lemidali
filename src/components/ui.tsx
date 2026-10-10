@@ -10,7 +10,7 @@ export const cx = (...c: (string | false | null | undefined)[]) => c.filter(Bool
 
 export function Card({ className, children, ...rest }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cx("rounded-2xl border border-line bg-surface shadow-card", className)} {...rest}>
+    <div className={cx("rounded-2xl border-[length:var(--card-border)] border-line bg-surface shadow-card", className)} {...rest}>
       {children}
     </div>
   );
@@ -85,7 +85,7 @@ export function StatusBadge({ status }: { status: LessonStatus }) {
 export function StatusDot({ status, number }: { status: LessonStatus; number: number }) {
   if (status === "completed")
     return (
-      <span className="grid size-9 shrink-0 place-items-center rounded-full bg-success text-white anim-pop">
+      <span className="grid size-9 shrink-0 place-items-center rounded-full bg-success text-success-ink anim-pop">
         <IconCheck size={18} strokeWidth={2.4} />
       </span>
     );
@@ -103,8 +103,9 @@ export function StatusDot({ status, number }: { status: LessonStatus; number: nu
 
 type BtnVariant = "primary" | "secondary" | "ghost" | "danger" | "success";
 const BTN: Record<BtnVariant, string> = {
-  primary: "bg-accent text-accent-ink hover:brightness-110",
-  success: "bg-success text-white hover:brightness-110",
+  // --press gives "pushable" buttons in themes that use it (Energy); none elsewhere
+  primary: "bg-accent text-accent-ink shadow-[var(--press)] hover:brightness-110 active:translate-y-px active:shadow-none",
+  success: "bg-success text-success-ink hover:brightness-110",
   secondary: "border border-line bg-surface text-ink hover:bg-surface-2",
   ghost: "text-ink-2 hover:bg-surface-2 hover:text-ink",
   danger: "text-danger hover:bg-danger-soft",
@@ -120,7 +121,8 @@ export function Button({
     <button
       className={cx(
         "inline-flex items-center justify-center gap-2 rounded-xl font-medium transition active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50",
-        size === "sm" ? "h-8 px-3 text-sm" : size === "lg" ? "h-12 px-6 text-base" : "h-10 px-4 text-sm",
+        // slightly taller on phones for easier tapping
+        size === "sm" ? "h-9 px-3 text-sm sm:h-8" : size === "lg" ? "h-12 px-6 text-base" : "h-11 px-4 text-sm sm:h-10",
         BTN[variant],
         className,
       )}
@@ -144,7 +146,7 @@ export function ButtonLink({
     <Link
       href={href}
       className={cx(
-        "inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-medium transition active:scale-[0.98]",
+        "inline-flex h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-medium transition active:scale-[0.98] sm:h-10",
         BTN[variant],
         className,
       )}
