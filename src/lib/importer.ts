@@ -2,8 +2,9 @@ import { fileToRows } from "./course-file/plan";
 import { parseCourseText } from "./course-file/validate";
 import type { Repository } from "./repo";
 
-export const TEMPLATE_URL = "/course-template.json";
-export const GUIDE_URL = "/course-format.md";
+const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+export const TEMPLATE_URL = `${BASE}/course-template.json`;
+export const GUIDE_URL = `${BASE}/course-format.md`;
 
 /** Loads the placeholder demo course (public/course-template.json). */
 export async function importDemo(repo: Repository) {

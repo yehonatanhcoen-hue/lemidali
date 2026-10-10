@@ -4,11 +4,13 @@ import { AppShell } from "@/components/app-shell";
 import { CourseProvider } from "@/lib/store";
 import "./globals.css";
 
+const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
 export const metadata: Metadata = {
   title: "לומדה",
   description: "ניהול תהליך למידה אישי",
-  manifest: "/manifest.webmanifest",
-  icons: { icon: "/favicon-64.png", apple: "/apple-touch-icon.png" },
+  manifest: `${BASE}/manifest.webmanifest`,
+  icons: { icon: `${BASE}/favicon-64.png`, apple: `${BASE}/apple-touch-icon.png` },
   // "Add to Home Screen" opens full-screen, without Safari's address bar
   appleWebApp: { capable: true, title: "לומדה", statusBarStyle: "default" },
 };
