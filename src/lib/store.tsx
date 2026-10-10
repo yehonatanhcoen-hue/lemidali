@@ -1,7 +1,9 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useAuth } from "./auth";
 import { repo, type Repository } from "./repo";
+import { migrateLocalData } from "./repo/migrate";
 import type { CourseData } from "./types";
 
 interface Store {
@@ -23,6 +25,8 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = useState<CourseData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
+  const userId = user?.id;
 
   const refresh = useCallback(async () => {
     try {
@@ -36,9 +40,10 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial client-side load
-    void refresh();
-  }, [refresh]);
+    // First login on this device: copy on-device data to the account, then load.
+    const first = userId ? migrateLocalData(userId).catch((e) => console.error("Moving on-device data failed", e)) : null;
+    void Promise.resolve(first).then(refresh);
+  }, [refresh, userId]);
 
   const run = useCallback(
     async (fn: (r: Repository) => Promise<unknown>) => {

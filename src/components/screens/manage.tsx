@@ -6,6 +6,7 @@ import { reorder, type QuizOwner } from "@/lib/edit";
 import { downloadText } from "@/lib/importer";
 import { lessonNumber, lessonQuiz, lessonsOfTopic, materialsOf, questionsOf, topicExam } from "@/lib/progress";
 import { QUESTION_TYPE_LABEL } from "@/lib/quiz";
+import { useAuth } from "@/lib/auth";
 import { useCourse } from "@/lib/store";
 import type { CourseData, CourseSummary, Lesson, LessonMaterial, QuizQuestion, Topic } from "@/lib/types";
 import { IconDown, IconDownload, IconEdit, IconLink, IconPlus, IconQuiz, IconTrash, IconTrophy, IconUp } from "../icons";
@@ -73,6 +74,8 @@ export function ManageScreen() {
           </Card>
         )}
       </div>
+
+      <AccountCard />
 
       {dialog?.kind === "course" && <CourseDialog data={dialog.create ? null : data} onClose={close} />}
       {data && dialog?.kind === "topic" && <TopicDialog data={data} topic={dialog.topic} onClose={close} />}
@@ -350,5 +353,33 @@ function QuestionsPanel({ title, owner, questions, open }: { title: string; owne
         <IconPlus size={16} /> הוסף שאלה
       </Button>
     </div>
+  );
+}
+
+function AccountCard() {
+  const { user, signOut } = useAuth();
+  const [busy, setBusy] = useState(false);
+  if (!user) return null;
+  return (
+    <Card className="mt-6 flex flex-wrap items-center justify-between gap-3 p-5" data-testid="account-card">
+      <div className="min-w-0">
+        <div className="text-sm font-medium text-ink-2">מחובר כ-</div>
+        <bdi className="block truncate font-semibold" dir="ltr">
+          {user.email}
+        </bdi>
+        <div className="mt-1 text-sm text-muted">הקורסים וההתקדמות נשמרים בחשבון וזמינים בכל מכשיר שמתחבר אליו.</div>
+      </div>
+      <Button
+        variant="secondary"
+        disabled={busy}
+        onClick={async () => {
+          setBusy(true);
+          await signOut();
+        }}
+        data-testid="sign-out"
+      >
+        התנתק
+      </Button>
+    </Card>
   );
 }

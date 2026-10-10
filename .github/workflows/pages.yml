@@ -23,6 +23,9 @@ jobs:
       - run: npm run build
         env:
           NEXT_PUBLIC_BASE_PATH: /lemidali
+          # Public by design: access is enforced by login + row-level security in the database.
+          NEXT_PUBLIC_SUPABASE_URL: https://zjxgeddtootqfvjbiqqv.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_cWG9P4nwI-i6znAnHZXq9A_bc3wiSIy
       - run: touch out/.nojekyll
       - uses: actions/upload-pages-artifact@v3
         with:

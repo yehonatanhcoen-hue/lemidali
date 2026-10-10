@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { useAuth } from "@/lib/auth";
 import { useCourse } from "@/lib/store";
 import type { CourseData } from "@/lib/types";
 import { importDemo } from "@/lib/importer";
@@ -50,6 +51,7 @@ function ThemeToggle({ compact }: { compact?: boolean }) {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { mode, data } = useCourse();
+  const { user, signOut } = useAuth();
 
   return (
     <div className="min-h-dvh md:flex">
@@ -72,6 +74,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               title="Supabase לא מוגדר — הנתונים נשמרים בדפדפן"
             >
               מצב מקומי · הנתונים נשמרים בדפדפן הזה
+            </div>
+          )}
+          {user && (
+            <div className="hidden rounded-xl bg-surface-2 px-3 py-2 text-xs text-muted lg:block" data-testid="sidebar-account">
+              <bdi className="block truncate" dir="ltr">
+                {user.email}
+              </bdi>
+              <button onClick={() => void signOut()} className="mt-1 font-medium text-accent hover:underline">
+                התנתק
+              </button>
             </div>
           )}
           <div className="flex justify-center lg:block">

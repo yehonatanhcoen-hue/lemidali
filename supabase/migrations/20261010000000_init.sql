@@ -2,29 +2,32 @@
 -- Course → Topics → Lessons (materials + quiz); topics may have a final exam.
 --
 -- Design notes
--- * Content tables (courses … quiz_options) are separated from learner-state
---   tables (lesson_progress … lesson_attachments). When Google Login is added,
---   only learner-state tables need a user_id column + RLS on auth.uid().
+-- * Every row belongs to one signed-in user (user_id, default auth.uid()).
+--   RLS lets each user see and change only their own rows.
+-- * Sign-ups are limited to the emails in private.allowed_emails (personal app).
 -- * Content rows have deterministic ids (uuid v5 of the course key + item key,
 --   computed in the app), so re-importing a course file updates rows in place
 --   and keeps progress. Keys are the stable identifiers from the course file.
 -- * "position" is used instead of "order" (reserved word in SQL).
 
 create table public.courses (
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
   id                uuid primary key,
-  key               text not null unique,
+  key               text not null,
   title             text not null,
   description       text not null default '',
   passing_score     integer not null default 80 check (passing_score between 0 and 100),
   lock_until_passed boolean not null default true,
   is_active         boolean not null default false,
   created_at        timestamptz not null default now(),
-  updated_at        timestamptz not null default now()
+  updated_at        timestamptz not null default now(),
+  unique (user_id, key)
 );
--- at most one active course
-create unique index courses_one_active on public.courses(is_active) where is_active;
+-- at most one active course per user
+create unique index courses_one_active on public.courses(user_id) where is_active;
 
 create table public.topics (
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
   id          uuid primary key,
   course_id   uuid not null references public.courses(id) on delete cascade,
   key         text not null,
@@ -36,6 +39,7 @@ create table public.topics (
 create index topics_course_idx on public.topics(course_id, position);
 
 create table public.lessons (
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
   id               uuid primary key,
   topic_id         uuid not null references public.topics(id) on delete cascade,
   key              text not null,
@@ -49,6 +53,7 @@ create index lessons_topic_idx on public.lessons(topic_id, position);
 create type public.material_type as enum ('video', 'article', 'pdf', 'document', 'link');
 
 create table public.lesson_materials (
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
   id               uuid primary key,
   lesson_id        uuid not null references public.lessons(id) on delete cascade,
   key              text not null,
@@ -63,6 +68,7 @@ create index lesson_materials_lesson_idx on public.lesson_materials(lesson_id, p
 
 -- A quiz belongs to exactly one lesson (lesson quiz) or one topic (final exam).
 create table public.quizzes (
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
   id            uuid primary key,
   lesson_id     uuid unique references public.lessons(id) on delete cascade,
   topic_id      uuid unique references public.topics(id) on delete cascade,
@@ -74,6 +80,7 @@ create table public.quizzes (
 create type public.question_type as enum ('single', 'multiple', 'true_false', 'open');
 
 create table public.quiz_questions (
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
   id           uuid primary key,
   quiz_id      uuid not null references public.quizzes(id) on delete cascade,
   key          text not null,
@@ -88,6 +95,7 @@ create index quiz_questions_quiz_idx on public.quiz_questions(quiz_id, position)
 
 -- Options for single / multiple / true_false (true_false = two options).
 create table public.quiz_options (
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
   id          uuid primary key,
   question_id uuid not null references public.quiz_questions(id) on delete cascade,
   text        text not null,
@@ -101,6 +109,7 @@ create index quiz_options_question_idx on public.quiz_options(question_id, posit
 create type public.lesson_status as enum ('not_started', 'in_progress', 'completed');
 
 create table public.lesson_progress (
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
   lesson_id          uuid primary key references public.lessons(id) on delete cascade,
   status             public.lesson_status not null default 'not_started',
   material_completed boolean not null default false,
@@ -110,12 +119,14 @@ create table public.lesson_progress (
 );
 
 create table public.material_views (
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
   material_id uuid primary key references public.lesson_materials(id) on delete cascade,
   viewed_at   timestamptz not null default now()
 );
 
 -- One row per full quiz run. score/total are points.
 create table public.quiz_attempts (
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
   id           uuid primary key default gen_random_uuid(),
   quiz_id      uuid not null references public.quizzes(id) on delete cascade,
   score        integer not null check (score >= 0),
@@ -129,6 +140,7 @@ create index quiz_attempts_quiz_idx on public.quiz_attempts(quiz_id, completed_a
 -- Every answered question (full quiz or mistakes practice).
 -- The latest row per question decides whether it is in "my mistakes".
 create table public.answer_log (
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
   id          uuid primary key default gen_random_uuid(),
   question_id uuid not null references public.quiz_questions(id) on delete cascade,
   attempt_id  uuid references public.quiz_attempts(id) on delete cascade, -- null = practice
@@ -143,12 +155,14 @@ create view public.question_last_results with (security_invoker = on) as
   order by question_id, answered_at desc;
 
 create table public.lesson_notes (
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
   lesson_id  uuid primary key references public.lessons(id) on delete cascade,
   content    text not null default '',
   updated_at timestamptz not null default now()
 );
 
 create table public.lesson_attachments (
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
   id         uuid primary key default gen_random_uuid(),
   lesson_id  uuid not null references public.lessons(id) on delete cascade,
   file_name  text not null,
@@ -159,10 +173,8 @@ create table public.lesson_attachments (
 );
 create index lesson_attachments_lesson_idx on public.lesson_attachments(lesson_id);
 
--- ---------- access (single-user MVP) ----------
--- No auth yet: the publishable (anon) key may read/write everything.
--- When adding Google Login: drop the "mvp_full_access" policies, add user_id to
--- the learner-state tables, and create policies "using (user_id = auth.uid())".
+-- ---------- access ----------
+-- Signed-in users only; each user sees only their own rows.
 
 do $$
 declare t text;
@@ -171,21 +183,47 @@ begin
     'courses','topics','lessons','lesson_materials','quizzes','quiz_questions','quiz_options',
     'lesson_progress','material_views','quiz_attempts','answer_log','lesson_notes','lesson_attachments'
   ] loop
-    execute format('grant select, insert, update, delete on public.%I to anon, authenticated', t);
+    execute format('revoke all on public.%I from anon', t);
+    execute format('grant select, insert, update, delete on public.%I to authenticated', t);
     execute format('alter table public.%I enable row level security', t);
     execute format(
-      'create policy "mvp_full_access" on public.%I for all to anon, authenticated using (true) with check (true)', t);
+      'create policy "own_rows" on public.%I for all to authenticated '
+      'using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()))', t);
+    execute format('create index on public.%I(user_id)', t);
   end loop;
 end $$;
 
-grant select on public.question_last_results to anon, authenticated;
+revoke all on public.question_last_results from anon;
+grant select on public.question_last_results to authenticated;
 
--- Switch the active course atomically (one call, one transaction).
+-- Switch the active course atomically. Security invoker: RLS limits it to the caller's courses.
 create function public.set_active_course(course_id uuid) returns void
 language plpgsql security invoker set search_path = '' as $$
 begin
   update public.courses set is_active = false where is_active and id <> course_id;
   update public.courses set is_active = true where id = course_id;
 end $$;
-revoke execute on function public.set_active_course(uuid) from public;
-grant execute on function public.set_active_course(uuid) to anon, authenticated;
+revoke execute on function public.set_active_course(uuid) from public, anon;
+grant execute on function public.set_active_course(uuid) to authenticated;
+
+-- ---------- who may sign up ----------
+-- Personal app: only these emails can create an account (email+password or Google).
+-- Add someone:  insert into private.allowed_emails values ('name@example.com');
+
+create schema if not exists private;
+revoke all on schema private from public, anon, authenticated;
+
+create table private.allowed_emails (email text primary key check (email = lower(email)));
+insert into private.allowed_emails values ('yehonatan.hcoen@gmail.com');
+
+create function private.check_allowed_email() returns trigger
+language plpgsql security definer set search_path = '' as $$
+begin
+  if not exists (select 1 from private.allowed_emails where email = lower(new.email)) then
+    raise exception 'Sign-ups are limited to the app owner' using errcode = '42501';
+  end if;
+  return new;
+end $$;
+
+create trigger only_allowed_emails before insert on auth.users
+  for each row execute function private.check_allowed_email();

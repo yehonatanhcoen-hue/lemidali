@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "@fontsource-variable/rubik"; // self-hosted (works offline, no Google Fonts request)
 import { AppShell } from "@/components/app-shell";
+import { AuthGate } from "@/lib/auth";
 import { CourseProvider } from "@/lib/store";
 import "./globals.css";
 
@@ -35,9 +36,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body>
-        <CourseProvider>
-          <AppShell>{children}</AppShell>
-        </CourseProvider>
+        <AuthGate>
+          <CourseProvider>
+            <AppShell>{children}</AppShell>
+          </CourseProvider>
+        </AuthGate>
       </body>
     </html>
   );

@@ -91,6 +91,11 @@ function cascadeDelete(db: Db, table: string, keys: Set<unknown>) {
   }
 }
 
+/** Raw on-device tables — used once to move them to the cloud after the first login. */
+export function readLocalDb(): Record<string, Record<string, unknown>[]> {
+  return read();
+}
+
 function lastResults(db: Db): LastResult[] {
   const latest = new Map<string, LastResult>();
   for (const r of db.answer_log as unknown as (LastResult & { answered_at: string })[]) {

@@ -3,9 +3,9 @@
 אפליקציית Web אישית ללמידת קורס: Course → Topics → Lessons, עם חומרי לימוד, מבחנים, נעילה לפי ציון, תרגול טעויות ומבחני סיכום לנושא.
 הקורס נטען מקובץ JSON אחד, שאפשר לבנות בעזרת כל צ׳אט AI.
 
-**Stack:** Next.js 16 (App Router) · TypeScript · Tailwind CSS 4 · Supabase (`@supabase/ssr` + publishable key)
+**Stack:** Next.js 16 (App Router, static export) · TypeScript · Tailwind CSS 4 · Supabase (Auth + Postgres עם RLS)
 
-## הרצה מהירה (בלי Supabase)
+## הרצה מהירה
 
 ```bash
 npm install
@@ -15,28 +15,34 @@ npm run dev
 פתח http://localhost:3000 ובחר "טען קורס דמו", או ייבא קובץ קורס מעמוד **ניהול**.
 בלי משתני סביבה האפליקציה רצה ב**מצב מקומי**: הנתונים נשמרים ב-localStorage של הדפדפן (מסומן בתחתית ה-Sidebar).
 
-## התקנה בטלפון (בלי שרת ובלי מסד נתונים)
+## הכתובת והתקנה בטלפון
 
-האפליקציה נבנית כאתר סטטי מלא (`npm run build` יוצר תיקייה `out/`). הנתונים נשמרים במכשיר עצמו.
+האתר מתפרסם אוטומטית ל-GitHub Pages בכל push ל-`main`: **https://yehonatanhcoen-hue.github.io/lemidali/**
 
-1. מעלים את תוכן `out/` לאחסון סטטי חינמי. הכי פשוט: [Netlify Drop](https://app.netlify.com/drop), גוררים את התיקייה או את `lemidali-site.zip`. אפשר גם GitHub Pages או Cloudflare Pages.
-2. בטלפון פותחים את הכתובת:
-   - **אייפון:** ב-Safari ← שיתוף ← "הוסף למסך הבית"
-   - **אנדרואיד:** ב-Chrome ← ⋮ ← "התקן אפליקציה"
-3. **תמיד פותחים מהאייקון.** לאפליקציה שעל מסך הבית יש אחסון משלה, נפרד מ-Safari.
+- **אייפון:** ב-Safari ← שיתוף ← "הוסף למסך הבית"
+- **אנדרואיד:** ב-Chrome ← ⋮ ← "התקן אפליקציה"
 
-> הנתונים קיימים רק במכשיר הזה. מחיקת האייקון (או ניקוי נתוני האתר) מוחקת את ההתקדמות. את הקורס עצמו תמיד אפשר לייבא מחדש מקובץ ה-JSON.
+## התחברות וסנכרון בין מכשירים
 
-## חיבור Supabase (אופציונלי — סנכרון בין מכשירים)
+כשמוגדר Supabase (כמו באתר המפורסם), צריך להתחבר, והקורסים וההתקדמות נשמרים בחשבון וזמינים בכל מכשיר.
 
-1. צור פרויקט ב-[supabase.com](https://supabase.com).
-2. ב-**SQL Editor** הרץ את `supabase/migrations/20261010000000_init.sql`.
-   *(או עם Supabase CLI: `supabase link` ואז `supabase db push`.)*
-   אם הרצת גרסה קודמת של הקובץ, מחק קודם את הטבלאות הישנות (או צור פרויקט חדש). הסכמה השתנתה.
-3. העתק `.env.example` ל-`.env.local` ומלא את ה-URL וה-Publishable key (Project Settings → API Keys).
-4. `npm run dev`. ה-Sidebar כבר לא יציג "מצב מקומי".
+- **אימייל וסיסמה:** עובד מיד. "יצירת חשבון" בפעם הראשונה.
+- **Google:** דורש הגדרה חד-פעמית (למטה). עד אז הכפתור מציג הודעה ברורה.
+- **רק אתה יכול להירשם:** ההרשמה מוגבלת לכתובות בטבלה `private.allowed_emails` (כרגע `yehonatan.hcoen@gmail.com`). להוספה: ב-SQL Editor `insert into private.allowed_emails values ('name@example.com');`
+- **פרטיות:** כל שורה במסד שייכת למשתמש (`user_id`), ו-RLS מאפשר לכל משתמש לראות ולשנות רק את שלו. בלי התחברות ה-API מחזיר 401. המפתח שבקוד הוא ה-publishable key, שנועד להיות ציבורי.
+- **נתונים שהיו במכשיר לפני ההתחברות** עוברים לחשבון בהתחברות הראשונה מאותו מכשיר: קורסים שאין בחשבון עולים במלואם, וההתקדמות נוספת. אם יש התנגשות, מה שבחשבון נשאר. העותק במכשיר לא נמחק.
+- **התנתקות:** בעמוד ניהול (בטלפון) או בתחתית ה-Sidebar (במחשב).
 
-> **אבטחה:** אין התחברות, וה-RLS מאפשר גישה מלאה עם ה-publishable key (`mvp_full_access`). זה מתאים לשימוש אישי, אבל כל מי שיש לו את כתובת האתר יכול לשנות נתונים. לפני פריסה ציבורית צריך להוסיף Google Login (ראו TODO).
+### הגדרות חד-פעמיות ב-Supabase
+
+1. **Authentication ← URL Configuration:** Site URL = `https://yehonatanhcoen-hue.github.io/lemidali/`, ולהוסיף אותה גם ל-Redirect URLs. (בלי זה הקישור במייל האימות מוביל ל-localhost. החשבון עדיין מאומת, ואפשר להתחבר.)
+2. **Google:** ב-Google Cloud Console יוצרים OAuth client מסוג Web application, עם Authorized redirect URI `https://zjxgeddtootqfvjbiqqv.supabase.co/auth/v1/callback`. את ה-Client ID וה-Client Secret מדביקים ב-Supabase ← Authentication ← Sign In / Providers ← Google, ומפעילים.
+
+### הרצה מקומית
+
+- בלי `.env.local`: אין התחברות, הנתונים נשמרים בדפדפן בלבד (מסומן "מצב מקומי").
+- עם `.env.local` (ראו `.env.example`): כמו באתר המפורסם.
+- הסכמה: `supabase/migrations/20261010000000_init.sql` (כבר הוחלה על הפרויקט).
 
 ## הזנת קורס
 
@@ -79,7 +85,8 @@ src/
     progress.ts              התקדמות, נעילות, "המשך ללמוד", טעויות
     quiz.ts                  בדיקת תשובות וציון לפי נקודות
     edit.ts                  עריכה ידנית (אותם מזהים כמו הייבוא)
-    repo/                    Repository: supabase.ts · local.ts
+    repo/                    Repository: supabase.ts · local.ts · migrate.ts (העברת נתוני מכשיר לחשבון)
+    auth.tsx                 שער התחברות (מסך כניסה עד שיש session)
 supabase/migrations/         סכמה + RLS + grants
 ```
 
@@ -89,14 +96,14 @@ supabase/migrations/         סכמה + RLS + grants
 מצב הלומד: `lesson_progress`, `material_views`, `quiz_attempts`, `answer_log` (+ view `question_last_results` לתרגול טעויות), `lesson_notes`, `lesson_attachments`.
 
 - מזהי התוכן נגזרים מה-`key` שבקובץ, ולכן ייבוא חוזר מעדכן שורות במקום ליצור חדשות.
-- הפרדה בין תוכן למצב לומד: כשתתווסף התחברות, רק טבלאות המצב צריכות `user_id`.
+- לכל טבלה יש `user_id` (ברירת מחדל `auth.uid()`), ו-RLS מגביל כל משתמש לשורות שלו. הקורס הפעיל וה-`key` של קורס ייחודיים לכל משתמש.
 - `set_active_course()`: החלפת הקורס הפעיל בפעולה אטומית אחת.
 
 ## TODO לשלבים הבאים
 
 - **העלאת קבצים:** ה-UI ומבנה הנתונים קיימים. לחבר: bucket בשם `lesson-files` ב-Supabase Storage, לממש `uploadAttachment` ב-`src/lib/repo/supabase.ts` (יש שם הערה עם הקוד), ולהפעיל את ה-input ב-`src/components/lesson/notes.tsx`.
-- **Google Login:** להפעיל Google provider ב-Supabase Auth; `signInWithOAuth({ provider: "google" })`; route `app/auth/callback`; `proxy.ts` לרענון session; להוסיף `user_id` לטבלאות המצב ולהחליף את `mvp_full_access` ב-`using (user_id = auth.uid())`.
+- **כמה משתמשים עם אותו קורס:** מזהי התוכן נגזרים מה-`key` בלבד, ולכן שני משתמשים שמייבאים קורס עם אותו `key` יתנגשו. לשימוש אישי זה לא משנה. אם תוסיף משתמשים, צריך לכלול את מזהה המשתמש בגזירת המזהים (`src/lib/ids.ts`).
 
 ## בדיקות שבוצעו
 
-21 תרחישים אוטומטיים בדפדפן (Playwright), גם במצב מקומי וגם מול Postgres + PostgREST (השכבה ש-Supabase משתמשת בה): טעינת דמו, נעילות, חומרים, ארבעת סוגי השאלות, ציון לפי נקודות, כישלון ומעבר, תרגול טעויות בשיעור ובקורס, מבחן סיכום שפותח נושא, ייבוא חוזר ששומר התקדמות, אזהרת מחיקה, קובץ שגוי, ייצוא (נבדק מול ה-Schema), עריכה ידנית, נגן YouTube, כיבוי נעילה, שני קורסים, ו-responsive (טלפון / אייפד / אייפד לרוחב).
+21 תרחישים אוטומטיים בדפדפן (Playwright), גם במצב מקומי וגם מחובר מול Postgres + PostgREST עם אותה סכמה ו-RLS, ועוד 12 תרחישי התחברות: הרשמה חסומה לכתובת זרה, העברת נתוני מכשיר לחשבון, סנכרון בין שני מכשירים, התנתקות, ובידוד בין משתמשים: טעינת דמו, נעילות, חומרים, ארבעת סוגי השאלות, ציון לפי נקודות, כישלון ומעבר, תרגול טעויות בשיעור ובקורס, מבחן סיכום שפותח נושא, ייבוא חוזר ששומר התקדמות, אזהרת מחיקה, קובץ שגוי, ייצוא (נבדק מול ה-Schema), עריכה ידנית, נגן YouTube, כיבוי נעילה, שני קורסים, ו-responsive (טלפון / אייפד / אייפד לרוחב).
