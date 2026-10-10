@@ -7,6 +7,7 @@ import { useCourse } from "@/lib/store";
 import type { CourseData, Lesson } from "@/lib/types";
 import { IconCheck, IconFlag, IconLock } from "../icons";
 import { Button, ProgressBar, cx, Frac } from "../ui";
+import { routes } from "@/lib/routes";
 
 export function CompleteSection({
   data,
@@ -81,7 +82,7 @@ export function CompleteSection({
               חזרה לדף הבית
             </Link>
           )}
-          <Link href={`/topics/${lesson.topic_id}`} className="inline-flex h-11 items-center rounded-xl border border-line px-5 text-sm font-medium hover:bg-surface-2">
+          <Link href={routes.topic(lesson.topic_id)} className="inline-flex h-11 items-center rounded-xl border border-line px-5 text-sm font-medium hover:bg-surface-2">
             חזרה לנושא
           </Link>
         </div>

@@ -9,6 +9,7 @@ import type {
   QuizQuestion,
   Topic,
 } from "./types";
+import { routes } from "./routes";
 
 export interface Ratio {
   completed: number;
@@ -141,7 +142,7 @@ export const itemTitle = (data: CourseData, item: SeqItem) =>
   item.kind === "lesson" ? `שיעור ${lessonNumber(data, item.lesson.id)}: ${iso(item.lesson.title)}` : `מבחן סיכום — ${iso(item.topic.title)}`;
 
 export const itemHref = (item: SeqItem) =>
-  item.kind === "lesson" ? `/lessons/${item.lesson.id}` : `/topics/${item.topic.id}/exam`;
+  item.kind === "lesson" ? routes.lesson(item.lesson.id) : routes.exam(item.topic.id);
 
 /**
  * "Continue learning": the most recently opened unlocked lesson that is in
@@ -194,9 +195,9 @@ export function mistakes(data: CourseData, quizId?: string): QuizQuestion[] {
 export function questionSource(data: CourseData, q: QuizQuestion): { label: string; href: string } {
   const quiz = data.quizzes.find((z) => z.id === q.quiz_id);
   const lesson = quiz?.lesson_id ? data.lessons.find((l) => l.id === quiz.lesson_id) : undefined;
-  if (lesson) return { label: `שיעור ${lessonNumber(data, lesson.id)}: ${iso(lesson.title)}`, href: `/lessons/${lesson.id}` };
+  if (lesson) return { label: `שיעור ${lessonNumber(data, lesson.id)}: ${iso(lesson.title)}`, href: routes.lesson(lesson.id) };
   const topic = quiz?.topic_id ? data.topics.find((t) => t.id === quiz.topic_id) : undefined;
-  return { label: topic ? `מבחן סיכום — ${iso(topic.title)}` : "", href: topic ? `/topics/${topic.id}/exam` : "/" };
+  return { label: topic ? `מבחן סיכום — ${iso(topic.title)}` : "", href: topic ? routes.exam(topic.id) : "/" };
 }
 
 export const STATUS_LABEL: Record<LessonStatus, string> = {

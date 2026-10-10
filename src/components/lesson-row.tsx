@@ -5,6 +5,7 @@ import { type Gate, lessonNumber, lessonQuiz, questionsOf, quizStats, statusOf }
 import type { CourseData, Lesson, Quiz, Topic } from "@/lib/types";
 import { IconCheck, IconChevron, IconClock, IconLock, IconTrophy } from "./icons";
 import { StatusBadge, StatusDot, cx } from "./ui";
+import { routes } from "@/lib/routes";
 
 function LockDot() {
   return (
@@ -22,7 +23,7 @@ export function LessonRow({ data, lesson, gate }: { data: CourseData; lesson: Le
   return (
     <li>
       <Link
-        href={`/lessons/${lesson.id}`}
+        href={routes.lesson(lesson.id)}
         className={cx("group flex items-center gap-4 px-4 py-4 transition hover:bg-surface-2 sm:px-5", locked && "opacity-60")}
         data-testid="lesson-row"
         data-status={status}
@@ -61,7 +62,7 @@ export function ExamRow({ data, topic, quiz, gate }: { data: CourseData; topic: 
   return (
     <li>
       <Link
-        href={`/topics/${topic.id}/exam`}
+        href={routes.exam(topic.id)}
         className={cx("group flex items-center gap-4 bg-accent-soft/40 px-4 py-4 transition hover:bg-accent-soft sm:px-5", locked && "opacity-60")}
         data-testid="exam-row"
         data-locked={locked}

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useRef } from "react";
 import {
   gateOf,
@@ -26,9 +26,10 @@ import { Stepper } from "../lesson/stepper";
 import { LockedCard } from "../locked";
 import { QuizPanel } from "../quiz/quiz-panel";
 import { Card, Empty, StatusBadge } from "../ui";
+import { routes } from "@/lib/routes";
 
 export function LessonScreen() {
-  const { lessonId } = useParams<{ lessonId: string }>();
+  const lessonId = useSearchParams().get("id") ?? "";
   return <WithData>{(data) => <LessonView key={lessonId} data={data} lessonId={lessonId} />}</WithData>;
 }
 
@@ -83,7 +84,7 @@ function LessonView({ data, lessonId }: { data: CourseData; lessonId: string }) 
         <span>/</span>
         {topic && (
           <>
-            <Link href={`/topics/${topic.id}`} className="hover:text-ink">
+            <Link href={routes.topic(topic.id)} className="hover:text-ink">
               {topic.title}
             </Link>
             <span>/</span>

@@ -11,7 +11,7 @@ import { Button, ButtonLink, Card, Skeleton, cx } from "./ui";
 
 const NAV = [
   { href: "/", label: "בית", icon: IconHome, match: (p: string) => p === "/" },
-  { href: "/course", label: "קורס", icon: IconBook, match: (p: string) => /^\/(course|topics|lessons)/.test(p) },
+  { href: "/course", label: "קורס", icon: IconBook, match: (p: string) => /^\/(course|topic|lesson|exam)/.test(p) },
   { href: "/progress", label: "התקדמות", icon: IconChart, match: (p: string) => p.startsWith("/progress") },
   { href: "/practice", label: "תרגול", icon: IconTarget, match: (p: string) => p.startsWith("/practice") },
   { href: "/manage", label: "ניהול", icon: IconSliders, match: (p: string) => p.startsWith("/manage") },

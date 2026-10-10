@@ -18,6 +18,7 @@ import type { CourseData } from "@/lib/types";
 import { WithData } from "../app-shell";
 import { IconLock } from "../icons";
 import { Card, PageHeader, ProgressBar, StatusBadge, cx, Frac } from "../ui";
+import { routes } from "@/lib/routes";
 
 export function ProgressScreen() {
   return <WithData>{(data) => <ProgressView data={data} />}</WithData>;
@@ -94,7 +95,7 @@ function ProgressView({ data }: { data: CourseData }) {
             <Card key={t.id} className="overflow-hidden">
               <div className="p-5">
                 <div className="num mb-2 flex items-baseline justify-between gap-3">
-                  <Link href={`/topics/${t.id}`} className="truncate font-semibold hover:text-accent">
+                  <Link href={routes.topic(t.id)} className="truncate font-semibold hover:text-accent">
                     <span className="text-muted">נושא {i + 1} · </span>
                     {t.title}
                   </Link>
@@ -125,7 +126,7 @@ function ProgressView({ data }: { data: CourseData }) {
                         return (
                           <tr key={l.id} className={cx("hover:bg-surface-2", locked && "opacity-60")}>
                             <td className="px-5 py-3">
-                              <Link href={`/lessons/${l.id}`} className="font-medium hover:text-accent">
+                              <Link href={routes.lesson(l.id)} className="font-medium hover:text-accent">
                                 <span className="text-muted">{lessonNumber(data, l.id)}. </span>
                                 {l.title}
                               </Link>
@@ -148,7 +149,7 @@ function ProgressView({ data }: { data: CourseData }) {
                       {exam && questionsOf(data, exam.id).length > 0 && (
                         <tr className="bg-accent-soft/30">
                           <td className="px-5 py-3 font-medium">
-                            <Link href={`/topics/${t.id}/exam`} className="hover:text-accent">
+                            <Link href={routes.exam(t.id)} className="hover:text-accent">
                               🏆 מבחן סיכום
                             </Link>
                           </td>

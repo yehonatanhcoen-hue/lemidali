@@ -15,7 +15,19 @@ npm run dev
 פתח http://localhost:3000 ובחר "טען קורס דמו", או ייבא קובץ קורס מעמוד **ניהול**.
 בלי משתני סביבה האפליקציה רצה ב**מצב מקומי**: הנתונים נשמרים ב-localStorage של הדפדפן (מסומן בתחתית ה-Sidebar).
 
-## חיבור Supabase
+## התקנה בטלפון (בלי שרת ובלי מסד נתונים)
+
+האפליקציה נבנית כאתר סטטי מלא (`npm run build` יוצר תיקייה `out/`). הנתונים נשמרים במכשיר עצמו.
+
+1. מעלים את תוכן `out/` לאחסון סטטי חינמי. הכי פשוט: [Netlify Drop](https://app.netlify.com/drop), גוררים את התיקייה או את `lemidali-site.zip`. אפשר גם GitHub Pages או Cloudflare Pages.
+2. בטלפון פותחים את הכתובת:
+   - **אייפון:** ב-Safari ← שיתוף ← "הוסף למסך הבית"
+   - **אנדרואיד:** ב-Chrome ← ⋮ ← "התקן אפליקציה"
+3. **תמיד פותחים מהאייקון.** לאפליקציה שעל מסך הבית יש אחסון משלה, נפרד מ-Safari.
+
+> הנתונים קיימים רק במכשיר הזה. מחיקת האייקון (או ניקוי נתוני האתר) מוחקת את ההתקדמות. את הקורס עצמו תמיד אפשר לייבא מחדש מקובץ ה-JSON.
+
+## חיבור Supabase (אופציונלי — סנכרון בין מכשירים)
 
 1. צור פרויקט ב-[supabase.com](https://supabase.com).
 2. ב-**SQL Editor** הרץ את `supabase/migrations/20261010000000_init.sql`.
@@ -55,7 +67,7 @@ npm run dev
 
 ```
 src/
-  app/                       routes: / · /course · /topics/[id] · /topics/[id]/exam · /lessons/[id] · /practice · /progress · /manage
+  app/                       routes: / · /course · /topic?id= · /exam?topic= · /lesson?id= · /practice · /progress · /manage
   components/
     screens/                 מסך לכל route
     lesson/                  עמוד השיעור: material · notes · complete · stepper · section

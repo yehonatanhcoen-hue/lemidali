@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { gates, lessonsOfTopic, questionsOf, topicExam, topicProgress } from "@/lib/progress";
 import type { CourseData } from "@/lib/types";
 import { WithData } from "../app-shell";
@@ -9,7 +9,7 @@ import { ExamRow, LessonRow } from "../lesson-row";
 import { Card, Empty, ProgressBar } from "../ui";
 
 export function TopicScreen() {
-  const { topicId } = useParams<{ topicId: string }>();
+  const topicId = useSearchParams().get("id") ?? "";
   return <WithData>{(data) => <TopicView data={data} topicId={topicId} />}</WithData>;
 }
 

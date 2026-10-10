@@ -7,6 +7,10 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "לומדה",
   description: "ניהול תהליך למידה אישי",
+  manifest: "/manifest.webmanifest",
+  icons: { icon: "/favicon-64.png", apple: "/apple-touch-icon.png" },
+  // "Add to Home Screen" opens full-screen, without Safari's address bar
+  appleWebApp: { capable: true, title: "לומדה", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {

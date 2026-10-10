@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { LessonScreen } from "@/components/screens/lesson";
 import { Skeleton } from "@/components/ui";
 
-// Data is loaded client-side (single-user app); params are read with useParams.
+// Static page; the id comes from the query string (?id=…) and data loads client-side.
 export default function Page() {
   return (
     <Suspense fallback={<Skeleton />}>

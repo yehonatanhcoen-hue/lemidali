@@ -6,6 +6,7 @@ import type { CourseData } from "@/lib/types";
 import { WithData } from "../app-shell";
 import { ExamRow, LessonRow } from "../lesson-row";
 import { Card, Empty, PageHeader, ProgressBar } from "../ui";
+import { routes } from "@/lib/routes";
 
 /** Full course outline: every topic with its lessons. */
 export function CourseScreen() {
@@ -33,7 +34,7 @@ function CourseView({ data }: { data: CourseData }) {
             const exam = topicExam(data, t.id);
             return (
               <Card key={t.id} className="overflow-hidden anim-rise" style={{ animationDelay: `${i * 50}ms` }}>
-                <Link href={`/topics/${t.id}`} className="block border-b border-line p-5 transition hover:bg-surface-2">
+                <Link href={routes.topic(t.id)} className="block border-b border-line p-5 transition hover:bg-surface-2">
                   <div className="flex items-baseline justify-between gap-3">
                     <div className="min-w-0">
                       <div className="num text-xs text-muted">נושא {i + 1}</div>

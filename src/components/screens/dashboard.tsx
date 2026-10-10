@@ -20,6 +20,7 @@ import type { CourseData } from "@/lib/types";
 import { WithData } from "../app-shell";
 import { IconArrowBack, IconCheck, IconClock, IconLock, IconPlay, IconTarget, IconTrophy } from "../icons";
 import { Card, Empty, ProgressBar, cx, Frac } from "../ui";
+import { routes } from "@/lib/routes";
 
 export function Dashboard() {
   return <WithData>{(data) => <DashboardView data={data} />}</WithData>;
@@ -89,7 +90,7 @@ function DashboardView({ data }: { data: CourseData }) {
               const exam = topicExam(data, t.id);
               const examStats = exam && questionsOf(data, exam.id).length ? quizStats(data, exam) : null;
               return (
-                <Link key={t.id} href={`/topics/${t.id}`} className="group anim-rise" style={{ animationDelay: `${i * 50}ms` }} data-testid="topic-card">
+                <Link key={t.id} href={routes.topic(t.id)} className="group anim-rise" style={{ animationDelay: `${i * 50}ms` }} data-testid="topic-card">
                   <Card className={cx("flex h-full flex-col p-5 transition group-hover:-translate-y-0.5 group-hover:border-accent/40", locked && "opacity-70")}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">

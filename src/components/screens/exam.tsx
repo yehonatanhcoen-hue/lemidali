@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { gateOf, lessonsOfTopic, questionsOf, quizStats, sequence, topicExam } from "@/lib/progress";
 import type { CourseData } from "@/lib/types";
 import { WithData } from "../app-shell";
@@ -9,9 +9,10 @@ import { IconTrophy } from "../icons";
 import { LockedCard } from "../locked";
 import { QuizPanel } from "../quiz/quiz-panel";
 import { Card, Empty } from "../ui";
+import { routes } from "@/lib/routes";
 
 export function ExamScreen() {
-  const { topicId } = useParams<{ topicId: string }>();
+  const topicId = useSearchParams().get("topic") ?? "";
   return <WithData>{(data) => <ExamView key={topicId} data={data} topicId={topicId} />}</WithData>;
 }
 
@@ -22,7 +23,7 @@ function ExamView({ data, topicId }: { data: CourseData; topicId: string }) {
   if (!topic || !quiz || !questionsOf(data, quiz.id).length)
     return (
       <Empty title="אין מבחן סיכום לנושא הזה">
-        <Link href={topic ? `/topics/${topic.id}` : "/course"} className="text-accent">
+        <Link href={topic ? routes.topic(topic.id) : "/course"} className="text-accent">
           חזרה
         </Link>
       </Empty>
@@ -40,7 +41,7 @@ function ExamView({ data, topicId }: { data: CourseData; topicId: string }) {
           {data.course.title}
         </Link>
         <span>/</span>
-        <Link href={`/topics/${topic.id}`} className="hover:text-ink">
+        <Link href={routes.topic(topic.id)} className="hover:text-ink">
           {topic.title}
         </Link>
         <span>/</span>
