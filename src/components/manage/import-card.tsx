@@ -109,7 +109,7 @@ export function ImportCard() {
         <span className="text-muted">איך בונים קובץ?</span>
         <button onClick={copyGuide} disabled={!guide} className="inline-flex items-center gap-1.5 font-medium text-accent hover:underline disabled:opacity-50" data-testid="copy-guide">
           {copied ? <IconCheck size={15} /> : <IconCopy size={15} />}
-          {copied ? "הועתק — הדבק בצ׳אט עם חומרי הקורס" : "העתק הוראות לצ׳אט AI"}
+          {copied ? "הועתק — הדבק בצ׳אט חדש וכתוב מה תרצה ללמוד" : "העתק הוראות לצ׳אט AI"}
         </button>
         <a href={GUIDE_URL} download="course-format.md" className="inline-flex items-center gap-1.5 font-medium text-accent hover:underline">
           <IconFile size={15} /> הורד הוראות
