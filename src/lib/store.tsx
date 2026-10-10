@@ -4,16 +4,15 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { repo, type Repository } from "./repo";
 import type { CourseData } from "./types";
 
-type Actions = Omit<Repository, "mode" | "load" | "saveNote">;
-
 interface Store {
   data: CourseData | null;
   loading: boolean;
   error: string | null;
   mode: Repository["mode"];
+  repo: Repository;
   refresh: () => Promise<void>;
-  /** Mutations: run against storage, then reload so all progress is recomputed. */
-  actions: Actions;
+  /** Runs a change against storage, then reloads so all progress is recomputed. */
+  run: (fn: (repo: Repository) => Promise<unknown>) => Promise<void>;
   /** Notes save without a full reload (keeps typing smooth). */
   saveNote: (lessonId: string, content: string) => Promise<void>;
 }
@@ -41,24 +40,16 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
     void refresh();
   }, [refresh]);
 
-  const actions = useMemo(() => {
-    const wrap =
-      <A extends unknown[]>(fn: (...args: A) => Promise<unknown>) =>
-      async (...args: A) => {
-        try {
-          await fn(...args);
-        } finally {
-          await refresh();
-        }
-      };
-    const a = {} as Record<string, unknown>;
-    for (const key of Object.keys(repo) as (keyof Repository)[]) {
-      if (key === "mode" || key === "load" || key === "saveNote") continue;
-      const fn = repo[key] as (...args: unknown[]) => Promise<unknown>;
-      a[key] = wrap(fn.bind(repo));
-    }
-    return a as unknown as Actions;
-  }, [refresh]);
+  const run = useCallback(
+    async (fn: (r: Repository) => Promise<unknown>) => {
+      try {
+        await fn(repo);
+      } finally {
+        await refresh();
+      }
+    },
+    [refresh],
+  );
 
   const saveNote = useCallback(async (lessonId: string, content: string) => {
     const updated_at = await repo.saveNote(lessonId, content);
@@ -66,8 +57,8 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ data, loading, error, mode: repo.mode, refresh, actions, saveNote }),
-    [data, loading, error, refresh, actions, saveNote],
+    () => ({ data, loading, error, mode: repo.mode, repo, refresh, run, saveNote }),
+    [data, loading, error, refresh, run, saveNote],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

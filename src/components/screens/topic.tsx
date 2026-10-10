@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { lessonsOfTopic, topicProgress } from "@/lib/progress";
+import { gates, lessonsOfTopic, questionsOf, topicExam, topicProgress } from "@/lib/progress";
 import type { CourseData } from "@/lib/types";
 import { WithData } from "../app-shell";
-import { LessonRow } from "../lesson-row";
+import { ExamRow, LessonRow } from "../lesson-row";
 import { Card, Empty, ProgressBar } from "../ui";
 
 export function TopicScreen() {
@@ -26,6 +26,9 @@ function TopicView({ data, topicId }: { data: CourseData; topicId: string }) {
     );
   const lessons = lessonsOfTopic(data, topic.id);
   const p = topicProgress(data, topic.id);
+  const g = gates(data);
+  const exam = topicExam(data, topic.id);
+  const hasExam = exam && questionsOf(data, exam.id).length > 0;
 
   return (
     <div className="space-y-6">
@@ -60,8 +63,9 @@ function TopicView({ data, topicId }: { data: CourseData; topicId: string }) {
           <Card className="overflow-hidden">
             <ul className="divide-y divide-line">
               {lessons.map((l) => (
-                <LessonRow key={l.id} data={data} lesson={l} />
+                <LessonRow key={l.id} data={data} lesson={l} gate={g.get(l.id)} />
               ))}
+              {hasExam && <ExamRow data={data} topic={topic} quiz={exam} gate={g.get(exam.id)} />}
             </ul>
           </Card>
         )}

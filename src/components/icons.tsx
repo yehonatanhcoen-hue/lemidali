@@ -168,6 +168,35 @@ export const IconFlag = (p: P) => (
     <path d="M5 21V4M5 4h11l-2 4 2 4H5" />
   </Base>
 );
+export const IconTarget = (p: P) => (
+  <Base {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <circle cx="12" cy="12" r="5" />
+    <circle cx="12" cy="12" r="1" fill="currentColor" />
+  </Base>
+);
+export const IconTrophy = (p: P) => (
+  <Base {...p}>
+    <path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5v1a3 3 0 0 0 3 3M16 6h3v1a3 3 0 0 1-3 3M12 13v4M9 20h6M10 17h4" />
+  </Base>
+);
+export const IconDownload = (p: P) => (
+  <Base {...p}>
+    <path d="M12 4v12M7 11l5 5 5-5M4 20h16" />
+  </Base>
+);
+export const IconCopy = (p: P) => (
+  <Base {...p}>
+    <rect x="8" y="8" width="12" height="12" rx="2" />
+    <path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3" />
+  </Base>
+);
+export const IconArticle = (p: P) => (
+  <Base {...p}>
+    <rect x="4" y="3" width="16" height="18" rx="2" />
+    <path d="M8 8h8M8 12h8M8 16h5" />
+  </Base>
+);
 export const IconLock = (p: P) => (
   <Base {...p}>
     <rect x="5" y="11" width="14" height="9" rx="2" />

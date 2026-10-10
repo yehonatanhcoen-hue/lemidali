@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "lemidali-course.schema.json",
+  "title": "Lemidali course file",
+  "description": "One course: topics → lessons → materials + quiz. Topic may have a final exam. See course-format.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "version", "key", "title", "topics"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "format": { "const": "lemidali-course" },
+    "version": { "const": 1 },
+    "key": { "$ref": "#/$defs/key" },
+    "title": { "$ref": "#/$defs/text" },
+    "description": { "type": "string" },
+    "passing_score": { "$ref": "#/$defs/score" },
+    "lock_until_passed": { "type": "boolean" },
+    "topics": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/topic" } }
+  },
+  "$defs": {
+    "key": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+      "description": "Stable identifier: lowercase letters, digits, hyphens. Unique in the whole file. Never change it after first import (progress is linked to it)."
+    },
+    "text": { "type": "string", "minLength": 1 },
+    "score": { "type": "integer", "minimum": 0, "maximum": 100 },
+    "minutes": { "type": "integer", "minimum": 1, "maximum": 1440 },
+    "url": { "type": "string", "pattern": "^https?://" },
+    "topic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "title", "lessons"],
+      "properties": {
+        "key": { "$ref": "#/$defs/key" },
+        "title": { "$ref": "#/$defs/text" },
+        "description": { "type": "string" },
+        "lessons": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/lesson" } },
+        "final_exam": { "$ref": "#/$defs/exam" }
+      }
+    },
+    "lesson": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "title"],
+      "properties": {
+        "key": { "$ref": "#/$defs/key" },
+        "title": { "$ref": "#/$defs/text" },
+        "description": { "type": "string" },
+        "duration_minutes": { "$ref": "#/$defs/minutes" },
+        "materials": { "type": "array", "items": { "$ref": "#/$defs/material" } },
+        "quiz": { "$ref": "#/$defs/quiz" }
+      }
+    },
+    "material": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "title", "url"],
+      "properties": {
+        "key": { "$ref": "#/$defs/key" },
+        "type": { "enum": ["video", "article", "pdf", "document", "link"] },
+        "title": { "$ref": "#/$defs/text" },
+        "url": { "$ref": "#/$defs/url" },
+        "duration_minutes": { "$ref": "#/$defs/minutes" },
+        "note": { "type": "string" }
+      }
+    },
+    "quiz": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["questions"],
+      "properties": {
+        "passing_score": { "$ref": "#/$defs/score" },
+        "questions": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/question" } }
+      }
+    },
+    "exam": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["questions"],
+      "properties": {
+        "title": { "type": "string" },
+        "passing_score": { "$ref": "#/$defs/score" },
+        "questions": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/question" } }
+      }
+    },
+    "question": {
+      "type": "object",
+      "required": ["key", "type", "question"],
+      "properties": {
+        "key": { "$ref": "#/$defs/key" },
+        "type": { "enum": ["single", "multiple", "true_false", "open"] },
+        "question": { "$ref": "#/$defs/text" },
+        "explanation": { "type": "string" },
+        "points": { "type": "integer", "minimum": 1, "maximum": 10 }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "key": true, "question": true, "explanation": true, "points": true,
+            "type": { "const": "single" },
+            "options": { "type": "array", "minItems": 2, "maxItems": 6, "items": { "$ref": "#/$defs/text" } },
+            "correct": { "type": "integer", "minimum": 0 }
+          },
+          "required": ["options", "correct"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "key": true, "question": true, "explanation": true, "points": true,
+            "type": { "const": "multiple" },
+            "options": { "type": "array", "minItems": 2, "maxItems": 8, "items": { "$ref": "#/$defs/text" } },
+            "correct": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "integer", "minimum": 0 } }
+          },
+          "required": ["options", "correct"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "key": true, "question": true, "explanation": true, "points": true,
+            "type": { "const": "true_false" },
+            "correct": { "type": "boolean" }
+          },
+          "required": ["correct"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "key": true, "question": true, "explanation": true, "points": true,
+            "type": { "const": "open" },
+            "model_answer": { "$ref": "#/$defs/text" }
+          },
+          "required": ["model_answer"],
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
+}

@@ -111,13 +111,13 @@ export function NotesSection({
 }
 
 function FilesArea({ attachments }: { attachments: LessonAttachment[] }) {
-  const { actions } = useCourse();
+  const { run } = useCourse();
   return (
     <div>
       <h3 className="mb-2 font-semibold">קבצים</h3>
       {/*
         TODO(storage): enable once a Supabase Storage bucket is connected.
-        Wire the input's onChange to actions.uploadAttachment(lessonId, file)
+        Wire the input's onChange to run((repo) => repo.uploadAttachment(lessonId, file))
         and implement uploadAttachment in src/lib/repo/supabase.ts.
       */}
       <div
@@ -139,7 +139,7 @@ function FilesArea({ attachments }: { attachments: LessonAttachment[] }) {
                 {a.file_name}
               </a>
               <button
-                onClick={() => void actions.deleteAttachment(a.id)}
+                onClick={() => void run((repo) => repo.deleteAttachment(a.id))}
                 className="text-muted hover:text-danger"
                 aria-label="מחק קובץ"
               >

@@ -1,118 +1,158 @@
 import type { PostgrestError } from "@supabase/supabase-js";
 import { getSupabase } from "../supabase/client";
-import type { Course, Topic } from "../types";
+import type { ContentTable, Course, CourseSummary } from "../types";
 import { assemble } from "./assemble";
 import { NotImplementedError, type Repository } from "./types";
+
+const db = () => getSupabase();
 
 function check<T>(res: { data: T; error: PostgrestError | null }): T {
   if (res.error) throw new Error(res.error.message);
   return res.data;
 }
 
-const db = () => getSupabase();
+const CHUNK = 100; // keeps `in.(…)` filters well under URL length limits
 
-async function nextPosition(table: "topics" | "lessons" | "quiz_questions", column: string, value: string) {
-  const rows = check(
-    await db().from(table).select("position").eq(column, value).order("position", { ascending: false }).limit(1),
-  ) as { position: number }[];
-  return rows.length ? rows[0].position + 1 : 0;
+function chunks<T>(list: T[], size = CHUNK): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < list.length; i += size) out.push(list.slice(i, i + size));
+  return out;
 }
+
+/** Select `columns` where `column` is in `values`, chunked. */
+async function selectIn<T>(table: string, columns: string, column: string, values: string[]): Promise<T[]> {
+  if (!values.length) return [];
+  const parts = await Promise.all(
+    chunks(values).map(async (part) => check(await db().from(table).select(columns).in(column, part)) as unknown as T[]),
+  );
+  return parts.flat();
+}
+
+async function deleteIds(table: string, ids: string[]) {
+  for (const part of chunks(ids)) check(await db().from(table).delete().in("id", part));
+}
+
+async function upsertChunked(table: string, rows: object[]) {
+  for (const part of chunks(rows, 500)) check(await db().from(table).upsert(part));
+}
+
+/** Delete rows under `parentIds` whose id is not in `keep`. */
+async function prune(table: string, parentColumn: string, parentIds: string[], keep: { id: string }[]) {
+  const keepIds = new Set(keep.map((r) => r.id));
+  const existing = await selectIn<{ id: string }>(table, "id", parentColumn, parentIds);
+  await deleteIds(table, existing.map((r) => r.id).filter((id) => !keepIds.has(id)));
+}
+
+const COURSE_COLS = "id,key,title,description,passing_score,lock_until_passed,is_active";
 
 export const supabaseRepo: Repository = {
   mode: "supabase",
 
-  async load() {
-    const course = check(
-      await db().from("courses").select("id,title,description").order("created_at").limit(1).maybeSingle(),
+  async listCourses() {
+    return check(await db().from("courses").select("id,key,title,is_active").order("created_at")) as CourseSummary[];
+  },
+
+  async load(courseId) {
+    const query = db().from("courses").select(COURSE_COLS);
+    const course = (
+      courseId
+        ? check(await query.eq("id", courseId).maybeSingle())
+        : check(await query.order("is_active", { ascending: false }).order("created_at").limit(1).maybeSingle())
     ) as Course | null;
     if (!course) return null;
 
     const topics = check(
-      await db().from("topics").select("id,course_id,title,description,position").eq("course_id", course.id),
-    ) as Topic[];
+      await db().from("topics").select("id,course_id,key,title,description,position").eq("course_id", course.id),
+    ) as { id: string }[];
     const topicIds = topics.map((t) => t.id);
+    const lessons = await selectIn<{ id: string }>(
+      "lessons", "id,topic_id,key,title,description,position,duration_minutes", "topic_id", topicIds,
+    );
+    const lessonIds = lessons.map((l) => l.id);
 
-    const lessons: { id: string }[] = topicIds.length
-      ? (check(
-          await db()
-            .from("lessons")
-            .select("id,topic_id,title,description,position,duration_minutes,learning_url")
-            .in("topic_id", topicIds),
-        ) ?? [])
-      : [];
-    const lessonIds = lessons.map((l) => l.id as string);
-
-    if (!lessonIds.length) {
-      return assemble({ course, topics, lessons: [], progress: [], questions: [], answers: [], attempts: [], notes: [], attachments: [] });
-    }
-
-    const [progress, questions, attempts, notes, attachments] = await Promise.all([
-      db().from("lesson_progress").select("lesson_id,status,material_completed,last_opened_at,completed_at").in("lesson_id", lessonIds),
-      db().from("quiz_questions").select("id,lesson_id,question,position,quiz_answers(id,question_id,answer,is_correct,position)").in("lesson_id", lessonIds),
-      db().from("quiz_attempts").select("id,lesson_id,score,total,completed_at").in("lesson_id", lessonIds),
-      db().from("lesson_notes").select("lesson_id,content,updated_at").in("lesson_id", lessonIds),
-      db().from("lesson_attachments").select("id,lesson_id,file_name,file_url,mime_type,size_bytes,created_at").in("lesson_id", lessonIds),
+    const [materials, lessonQuizzes, topicQuizzes, progress, notes, attachments] = await Promise.all([
+      selectIn<{ id: string }>("lesson_materials", "id,lesson_id,key,type,title,url,duration_minutes,note,position", "lesson_id", lessonIds),
+      selectIn<{ id: string }>("quizzes", "id,lesson_id,topic_id,title,passing_score", "lesson_id", lessonIds),
+      selectIn<{ id: string }>("quizzes", "id,lesson_id,topic_id,title,passing_score", "topic_id", topicIds),
+      selectIn("lesson_progress", "lesson_id,status,material_completed,last_opened_at,completed_at", "lesson_id", lessonIds),
+      selectIn("lesson_notes", "lesson_id,content,updated_at", "lesson_id", lessonIds),
+      selectIn("lesson_attachments", "id,lesson_id,file_name,file_url,mime_type,size_bytes,created_at", "lesson_id", lessonIds),
     ]);
+    const quizzes = [...lessonQuizzes, ...topicQuizzes];
+    const quizIds = quizzes.map((q) => q.id);
+    const materialIds = materials.map((m) => m.id);
 
-    const qRows = check(questions) as unknown as {
-      id: string;
-      lesson_id: string;
-      question: string;
-      position: number;
-      quiz_answers: { id: string; question_id: string; answer: string; is_correct: boolean; position: number }[];
-    }[];
+    const [questions, attempts, materialViews] = await Promise.all([
+      selectIn<{ id: string }>("quiz_questions", "id,quiz_id,key,type,question,explanation,model_answer,points,position", "quiz_id", quizIds),
+      selectIn("quiz_attempts", "id,quiz_id,score,total,percent,passed,completed_at", "quiz_id", quizIds),
+      selectIn("material_views", "material_id,viewed_at", "material_id", materialIds),
+    ]);
+    const questionIds = questions.map((q) => q.id);
+    const [options, lastResults] = await Promise.all([
+      selectIn("quiz_options", "id,question_id,text,is_correct,position", "question_id", questionIds),
+      selectIn("question_last_results", "question_id,is_correct,answered_at", "question_id", questionIds),
+    ]);
 
     return assemble({
       course,
-      topics,
+      topics: topics as never,
       lessons: lessons as never,
-      progress: check(progress) as never,
-      questions: qRows.map((q) => ({ id: q.id, lesson_id: q.lesson_id, question: q.question, position: q.position })),
-      answers: qRows.flatMap((q) => q.quiz_answers),
-      attempts: check(attempts) as never,
-      notes: check(notes) as never,
-      attachments: check(attachments) as never,
+      materials: materials as never,
+      quizzes: quizzes as never,
+      questions: questions as never,
+      options: options as never,
+      progress: progress as never,
+      materialViews: materialViews as never,
+      attempts: attempts as never,
+      lastResults: lastResults as never,
+      notes: notes as never,
+      attachments: attachments as never,
     });
   },
 
-  async createCourse(input) {
-    check(await db().from("courses").insert(input));
-  },
-  async updateCourse(id, patch) {
-    check(await db().from("courses").update(patch).eq("id", id));
+  async setActiveCourse(id) {
+    check(await db().rpc("set_active_course", { course_id: id }));
   },
 
-  async createTopic(courseId, input) {
-    const position = await nextPosition("topics", "course_id", courseId);
-    check(await db().from("topics").insert({ course_id: courseId, ...input, position }));
-  },
-  async updateTopic(id, patch) {
-    check(await db().from("topics").update(patch).eq("id", id));
-  },
-  async deleteTopic(id) {
-    check(await db().from("topics").delete().eq("id", id));
-  },
-  async reorderTopics(ids) {
-    await Promise.all(ids.map(async (id, position) => check(await db().from("topics").update({ position }).eq("id", id))));
+  async upsert(table, rows) {
+    const clean =
+      table === "courses" ? (rows as Course[]).map((c) => ({ ...c, updated_at: new Date().toISOString() })) : rows;
+    await upsertChunked(table, clean as object[]);
   },
 
-  async createLesson(topicId, input) {
-    const position = await nextPosition("lessons", "topic_id", topicId);
-    check(await db().from("lessons").insert({ ...input, topic_id: topicId, position }));
+  async remove(table: ContentTable, ids: string[]) {
+    await deleteIds(table, ids); // FK "on delete cascade" removes dependents
   },
-  async updateLesson(id, patch) {
-    const update: Record<string, unknown> = { ...patch };
-    if (patch.topic_id) {
-      const current = check(await db().from("lessons").select("topic_id").eq("id", id).single()) as { topic_id: string };
-      if (current.topic_id !== patch.topic_id) update.position = await nextPosition("lessons", "topic_id", patch.topic_id);
-    }
-    check(await db().from("lessons").update(update).eq("id", id));
-  },
-  async deleteLesson(id) {
-    check(await db().from("lessons").delete().eq("id", id));
-  },
-  async reorderLessons(ids) {
-    await Promise.all(ids.map(async (id, position) => check(await db().from("lessons").update({ position }).eq("id", id))));
+
+  async importCourse(rows) {
+    const cid = rows.course.id;
+    // 1) upsert the course row without touching is_active (activated at the end)
+    const { is_active: _active, ...course } = rows.course;
+    void _active;
+    check(await db().from("courses").upsert({ ...course, updated_at: new Date().toISOString() }));
+
+    // 2) prune rows of this course that the file no longer contains (cascade handles children)
+    await prune("topics", "course_id", [cid], rows.topics);
+    const topicIds = rows.topics.map((t) => t.id);
+    await prune("lessons", "topic_id", topicIds, rows.lessons);
+    const lessonIds = rows.lessons.map((l) => l.id);
+    await prune("lesson_materials", "lesson_id", lessonIds, rows.materials);
+    await prune("quizzes", "lesson_id", lessonIds, rows.quizzes);
+    await prune("quizzes", "topic_id", topicIds, rows.quizzes);
+    const quizIds = rows.quizzes.map((q) => q.id);
+    await prune("quiz_questions", "quiz_id", quizIds, rows.questions);
+    await prune("quiz_options", "question_id", rows.questions.map((q) => q.id), rows.options);
+
+    // 3) upsert everything, parents first
+    await upsertChunked("topics", rows.topics);
+    await upsertChunked("lessons", rows.lessons);
+    await upsertChunked("lesson_materials", rows.materials);
+    await upsertChunked("quizzes", rows.quizzes);
+    await upsertChunked("quiz_questions", rows.questions);
+    await upsertChunked("quiz_options", rows.options);
+
+    // 4) only now switch to it — a failed import leaves the previous course active
+    await this.setActiveCourse(cid);
   },
 
   async upsertProgress(lessonId, patch) {
@@ -123,30 +163,25 @@ export const supabaseRepo: Repository = {
     );
   },
 
-  async saveQuestion(lessonId, input, id) {
-    let qid = id;
-    if (qid) {
-      check(await db().from("quiz_questions").update({ question: input.question }).eq("id", qid));
-      check(await db().from("quiz_answers").delete().eq("question_id", qid));
-    } else {
-      const position = await nextPosition("quiz_questions", "lesson_id", lessonId);
-      const row = check(
-        await db().from("quiz_questions").insert({ lesson_id: lessonId, question: input.question, position }).select("id").single(),
-      ) as { id: string };
-      qid = row.id;
-    }
-    check(
-      await db()
-        .from("quiz_answers")
-        .insert(input.answers.map((a, position) => ({ question_id: qid, answer: a.answer, is_correct: a.is_correct, position }))),
-    );
-  },
-  async deleteQuestion(id) {
-    check(await db().from("quiz_questions").delete().eq("id", id));
+  async setMaterialViewed(materialId, viewed) {
+    if (viewed) check(await db().from("material_views").upsert({ material_id: materialId, viewed_at: new Date().toISOString() }));
+    else check(await db().from("material_views").delete().eq("material_id", materialId));
   },
 
-  async addQuizAttempt(lessonId, score, total) {
-    check(await db().from("quiz_attempts").insert({ lesson_id: lessonId, score, total }));
+  async recordAttempt(quizId, result, answers) {
+    const attempt = check(
+      await db().from("quiz_attempts").insert({ quiz_id: quizId, ...result }).select("id,completed_at").single(),
+    ) as { id: string; completed_at: string };
+    if (answers.length)
+      check(
+        await db()
+          .from("answer_log")
+          .insert(answers.map((a) => ({ ...a, attempt_id: attempt.id, answered_at: attempt.completed_at }))),
+      );
+  },
+
+  async logAnswers(answers) {
+    if (answers.length) check(await db().from("answer_log").insert(answers.map((a) => ({ ...a, attempt_id: null }))));
   },
 
   async saveNote(lessonId, content) {

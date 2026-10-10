@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { courseProgress, lessonsOfTopic, topicProgress } from "@/lib/progress";
+import { courseProgress, gates, lessonsOfTopic, questionsOf, topicExam, topicProgress } from "@/lib/progress";
 import type { CourseData } from "@/lib/types";
 import { WithData } from "../app-shell";
-import { LessonRow } from "../lesson-row";
+import { ExamRow, LessonRow } from "../lesson-row";
 import { Card, Empty, PageHeader, ProgressBar } from "../ui";
 
 /** Full course outline: every topic with its lessons. */
@@ -14,6 +14,7 @@ export function CourseScreen() {
 
 function CourseView({ data }: { data: CourseData }) {
   const overall = courseProgress(data);
+  const g = gates(data);
   return (
     <div>
       <PageHeader eyebrow="מבנה הקורס" title={data.course.title}>
@@ -29,6 +30,7 @@ function CourseView({ data }: { data: CourseData }) {
           {data.topics.map((t, i) => {
             const p = topicProgress(data, t.id);
             const lessons = lessonsOfTopic(data, t.id);
+            const exam = topicExam(data, t.id);
             return (
               <Card key={t.id} className="overflow-hidden anim-rise" style={{ animationDelay: `${i * 50}ms` }}>
                 <Link href={`/topics/${t.id}`} className="block border-b border-line p-5 transition hover:bg-surface-2">
@@ -46,8 +48,11 @@ function CourseView({ data }: { data: CourseData }) {
                 {lessons.length ? (
                   <ul className="divide-y divide-line">
                     {lessons.map((l) => (
-                      <LessonRow key={l.id} data={data} lesson={l} />
+                      <LessonRow key={l.id} data={data} lesson={l} gate={g.get(l.id)} />
                     ))}
+                    {exam && questionsOf(data, exam.id).length > 0 && (
+                      <ExamRow data={data} topic={t} quiz={exam} gate={g.get(exam.id)} />
+                    )}
                   </ul>
                 ) : (
                   <div className="p-5 text-sm text-muted">אין שיעורים בנושא הזה עדיין.</div>

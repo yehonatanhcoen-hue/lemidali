@@ -206,3 +206,12 @@ export function Skeleton() {
     </div>
   );
 }
+
+/** "a / b" that stays left-to-right inside RTL text (otherwise it renders "b / a"). */
+export function Frac({ a, b, className }: { a: React.ReactNode; b: React.ReactNode; className?: string }) {
+  return (
+    <span dir="ltr" className={cx("num inline-block", className)}>
+      {a} / {b}
+    </span>
+  );
+}

@@ -1,24 +1,39 @@
 "use client";
 
-import { useState } from "react";
-import { lessonNumber, lessonsOfTopic, questionsOf } from "@/lib/progress";
+import { useEffect, useLayoutEffect, useState } from "react";
+import { dataToFile } from "@/lib/course-file/plan";
+import { reorder, type QuizOwner } from "@/lib/edit";
+import { downloadText } from "@/lib/importer";
+import { lessonNumber, lessonQuiz, lessonsOfTopic, materialsOf, questionsOf, topicExam } from "@/lib/progress";
+import { QUESTION_TYPE_LABEL } from "@/lib/quiz";
 import { useCourse } from "@/lib/store";
-import type { CourseData, Lesson, QuizQuestion, Topic } from "@/lib/types";
-import { normalizeUrl } from "@/lib/url";
-import { IconChevron, IconDown, IconEdit, IconPlus, IconQuiz, IconTrash, IconUp } from "../icons";
-import { Modal } from "../modal";
-import { Button, Card, Field, PageHeader, Skeleton, cx, inputCls } from "../ui";
+import type { CourseData, CourseSummary, Lesson, LessonMaterial, QuizQuestion, Topic } from "@/lib/types";
+import { IconDown, IconDownload, IconEdit, IconLink, IconPlus, IconQuiz, IconTrash, IconTrophy, IconUp } from "../icons";
+import { MATERIAL_LABEL } from "../lesson/material";
+import { CourseDialog, LessonDialog, MaterialDialog, QuestionDialog, TopicDialog } from "../manage/dialogs";
+import { ImportCard } from "../manage/import-card";
+import { Button, Card, PageHeader, Skeleton, cx } from "../ui";
 
 type Dialog =
-  | { kind: "course" }
+  | { kind: "course"; create?: boolean }
   | { kind: "topic"; topic?: Topic }
   | { kind: "lesson"; topicId: string; lesson?: Lesson }
-  | { kind: "question"; lessonId: string; question?: QuizQuestion };
+  | { kind: "material"; lessonId: string; material?: LessonMaterial }
+  | { kind: "question"; owner: QuizOwner; question?: QuizQuestion };
+
+type Open = (d: Dialog) => void;
 
 export function ManageScreen() {
-  const { data, loading, error, mode } = useCourse();
+  const { data, loading, error, mode, repo } = useCourse();
   const [dialog, setDialog] = useState<Dialog | null>(null);
+  const [courses, setCourses] = useState<CourseSummary[]>([]);
   const close = () => setDialog(null);
+  // close dialogs when navigating away (the page stays mounted but hidden)
+  useLayoutEffect(() => () => setDialog(null), []);
+
+  useEffect(() => {
+    repo.listCourses().then(setCourses).catch(() => setCourses([]));
+  }, [repo, data]);
 
   if (loading) return <Skeleton />;
   if (error) return <Card className="p-6 text-danger">{error}</Card>;
@@ -26,60 +41,109 @@ export function ManageScreen() {
   return (
     <div>
       <PageHeader eyebrow="ניהול תוכן" title="ניהול הקורס">
-        הוספה ועריכה של נושאים, שיעורים, קישורים ושאלות מבחן.
-        {mode === "local" && (
-          <span className="mt-1 block text-sm text-muted">
-            Supabase לא מוגדר — השינויים נשמרים בדפדפן הזה בלבד.
-          </span>
-        )}
+        ייבוא קורס מקובץ, ועריכה ידנית של נושאים, שיעורים, חומרים ושאלות.
+        {mode === "local" && <span className="mt-1 block text-sm text-muted">Supabase לא מוגדר — השינויים נשמרים בדפדפן הזה בלבד.</span>}
       </PageHeader>
 
-      {!data ? (
-        <Card className="p-8 text-center">
-          <div className="text-lg font-semibold">עדיין אין קורס</div>
-          <Button className="mt-4" onClick={() => setDialog({ kind: "course" })}>
-            <IconPlus size={17} /> צור קורס
-          </Button>
-        </Card>
-      ) : (
-        <div className="space-y-6">
-          <Card className="flex flex-wrap items-center justify-between gap-4 p-5">
-            <div className="min-w-0">
-              <div className="text-xs font-medium text-muted">קורס</div>
-              <div className="ut truncate text-lg font-semibold">{data.course.title}</div>
-              {data.course.description && <div className="ut truncate text-sm text-ink-2">{data.course.description}</div>}
+      <div className="space-y-6">
+        <ImportCard />
+
+        {courses.length > 1 && <CourseSwitcher courses={courses} activeId={data?.course.id} />}
+
+        {data ? (
+          <>
+            <CourseCard data={data} open={setDialog} />
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold">נושאים ושיעורים</h2>
+              <Button onClick={() => setDialog({ kind: "topic" })} data-testid="add-topic">
+                <IconPlus size={17} /> הוסף נושא
+              </Button>
             </div>
-            <Button variant="secondary" onClick={() => setDialog({ kind: "course" })}>
-              <IconEdit size={16} /> ערוך פרטי קורס
+            {data.topics.length === 0 && <Card className="p-8 text-center text-ink-2">אין עדיין נושאים. התחל בהוספת נושא או ייבא קובץ.</Card>}
+            {data.topics.map((t, i) => (
+              <TopicBlock key={t.id} data={data} topic={t} index={i} open={setDialog} />
+            ))}
+          </>
+        ) : (
+          <Card className="flex flex-wrap items-center justify-between gap-3 p-5">
+            <span className="text-ink-2">או צור קורס ריק ובנה אותו ידנית.</span>
+            <Button variant="secondary" onClick={() => setDialog({ kind: "course", create: true })}>
+              <IconPlus size={17} /> קורס ריק
             </Button>
           </Card>
+        )}
+      </div>
 
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold">נושאים ושיעורים</h2>
-            <Button onClick={() => setDialog({ kind: "topic" })} data-testid="add-topic">
-              <IconPlus size={17} /> הוסף נושא
-            </Button>
-          </div>
-
-          {data.topics.length === 0 && (
-            <Card className="p-8 text-center text-ink-2">אין עדיין נושאים. התחל בהוספת נושא.</Card>
-          )}
-
-          {data.topics.map((t, i) => (
-            <TopicBlock key={t.id} data={data} topic={t} index={i} open={setDialog} />
-          ))}
-        </div>
-      )}
-
-      {dialog?.kind === "course" && <CourseDialog data={data} onClose={close} />}
-      {dialog?.kind === "topic" && data && <TopicDialog courseId={data.course.id} topic={dialog.topic} onClose={close} />}
-      {dialog?.kind === "lesson" && data && (
-        <LessonDialog data={data} topicId={dialog.topicId} lesson={dialog.lesson} onClose={close} />
-      )}
-      {dialog?.kind === "question" && (
-        <QuestionDialog lessonId={dialog.lessonId} question={dialog.question} onClose={close} />
-      )}
+      {dialog?.kind === "course" && <CourseDialog data={dialog.create ? null : data} onClose={close} />}
+      {data && dialog?.kind === "topic" && <TopicDialog data={data} topic={dialog.topic} onClose={close} />}
+      {data && dialog?.kind === "lesson" && <LessonDialog data={data} topicId={dialog.topicId} lesson={dialog.lesson} onClose={close} />}
+      {data && dialog?.kind === "material" && <MaterialDialog data={data} lessonId={dialog.lessonId} material={dialog.material} onClose={close} />}
+      {data && dialog?.kind === "question" && <QuestionDialog data={data} owner={dialog.owner} question={dialog.question} onClose={close} />}
     </div>
+  );
+}
+
+function CourseSwitcher({ courses, activeId }: { courses: CourseSummary[]; activeId?: string }) {
+  const { run } = useCourse();
+  return (
+    <Card className="overflow-hidden" data-testid="course-switcher">
+      <div className="border-b border-line px-5 py-3 text-sm font-semibold">הקורסים שלי</div>
+      <ul className="divide-y divide-line">
+        {courses.map((c) => (
+          <li key={c.id} className="flex items-center gap-3 px-5 py-3">
+            <span className="ut min-w-0 flex-1 truncate font-medium">{c.title}</span>
+            {c.id === activeId ? (
+              <span className="rounded-full bg-accent-soft px-2.5 py-0.5 text-xs font-medium text-accent">פעיל</span>
+            ) : (
+              <Button variant="secondary" size="sm" onClick={() => void run((r) => r.setActiveCourse(c.id))}>
+                הפעל
+              </Button>
+            )}
+            <IconBtn
+              label="מחק קורס"
+              danger
+              onClick={() => {
+                if (confirm(`למחוק את הקורס "${c.title}" וכל ההתקדמות שבו? אי אפשר לבטל.`)) void run((r) => r.remove("courses", [c.id]));
+              }}
+            >
+              <IconTrash size={17} />
+            </IconBtn>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
+function CourseCard({ data, open }: { data: CourseData; open: Open }) {
+  const c = data.course;
+  return (
+    <Card className="p-5" data-testid="course-card">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="text-xs font-medium text-muted">קורס פעיל</div>
+          <div className="ut truncate text-lg font-semibold">{c.title}</div>
+          <div className="num mt-1 text-sm text-ink-2">
+            ציון עובר {c.passing_score}% · {c.lock_until_passed ? "נעילה לפי ציון פעילה" : "ללא נעילה"} ·{" "}
+            <span dir="ltr" className="text-muted">
+              key: {c.key}
+            </span>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" onClick={() => open({ kind: "course" })} data-testid="edit-course">
+            <IconEdit size={16} /> הגדרות
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => downloadText(`${c.key}.json`, JSON.stringify(dataToFile(data), null, 2))}
+            data-testid="export-course"
+          >
+            <IconDownload size={16} /> ייצוא JSON
+          </Button>
+        </div>
+      </div>
+    </Card>
   );
 }
 
@@ -88,12 +152,14 @@ function IconBtn({
   onClick,
   disabled,
   danger,
+  active,
   children,
 }: {
   label: string;
   onClick: () => void;
   disabled?: boolean;
   danger?: boolean;
+  active?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -102,8 +168,10 @@ function IconBtn({
       disabled={disabled}
       title={label}
       aria-label={label}
+      aria-pressed={active}
       className={cx(
-        "grid size-9 place-items-center rounded-lg text-muted transition disabled:opacity-30",
+        "grid size-9 shrink-0 place-items-center rounded-lg transition disabled:opacity-30",
+        active ? "bg-accent-soft text-accent" : "text-muted",
         danger ? "hover:bg-danger-soft hover:text-danger" : "hover:bg-surface-2 hover:text-ink",
       )}
     >
@@ -119,38 +187,25 @@ const move = <T,>(arr: T[], from: number, to: number) => {
   return copy;
 };
 
-function TopicBlock({
-  data,
-  topic,
-  index,
-  open,
-}: {
-  data: CourseData;
-  topic: Topic;
-  index: number;
-  open: (d: Dialog) => void;
-}) {
-  const { actions } = useCourse();
+function TopicBlock({ data, topic, index, open }: { data: CourseData; topic: Topic; index: number; open: Open }) {
+  const { run } = useCourse();
   const lessons = lessonsOfTopic(data, topic.id);
-  const [expanded, setExpanded] = useState<string | null>(null);
-  const topicIds = data.topics.map((t) => t.id);
-  const lessonIds = lessons.map((l) => l.id);
+  const [panel, setPanel] = useState<{ id: string; kind: "materials" | "questions" } | null>(null);
+  const exam = topicExam(data, topic.id);
+  const examQuestions = questionsOf(data, exam?.id);
+  const examOpen = panel?.id === topic.id;
 
   return (
     <Card className="overflow-hidden" data-testid="manage-topic">
-      <div className="flex items-center gap-2 border-b border-line bg-surface-2/50 px-4 py-3 sm:px-5">
+      <div className="flex items-center gap-1 border-b border-line bg-surface-2/50 px-3 py-3 sm:px-5">
         <div className="min-w-0 flex-1">
           <div className="num text-xs text-muted">נושא {index + 1}</div>
           <div className="ut truncate font-semibold">{topic.title}</div>
         </div>
-        <IconBtn label="הזז למעלה" disabled={index === 0} onClick={() => actions.reorderTopics(move(topicIds, index, index - 1))}>
+        <IconBtn label="הזז למעלה" disabled={index === 0} onClick={() => void run((r) => reorder(r, "topics", move(data.topics, index, index - 1)))}>
           <IconUp size={18} />
         </IconBtn>
-        <IconBtn
-          label="הזז למטה"
-          disabled={index === topicIds.length - 1}
-          onClick={() => actions.reorderTopics(move(topicIds, index, index + 1))}
-        >
+        <IconBtn label="הזז למטה" disabled={index === data.topics.length - 1} onClick={() => void run((r) => reorder(r, "topics", move(data.topics, index, index + 1)))}>
           <IconDown size={18} />
         </IconBtn>
         <IconBtn label="ערוך נושא" onClick={() => open({ kind: "topic", topic })}>
@@ -160,7 +215,7 @@ function TopicBlock({
           label="מחק נושא"
           danger
           onClick={() => {
-            if (confirm(`למחוק את "${topic.title}" ואת כל ${lessons.length} השיעורים שבו?`)) void actions.deleteTopic(topic.id);
+            if (confirm(`למחוק את "${topic.title}" ואת כל ${lessons.length} השיעורים שבו?`)) void run((r) => r.remove("topics", [topic.id]));
           }}
         >
           <IconTrash size={17} />
@@ -169,306 +224,131 @@ function TopicBlock({
 
       <ul className="divide-y divide-line">
         {lessons.map((l, i) => {
-          const qs = questionsOf(data, l.id);
-          const isOpen = expanded === l.id;
+          const mats = materialsOf(data, l.id);
+          const qs = questionsOf(data, lessonQuiz(data, l.id)?.id);
+          const isOpen = panel?.id === l.id ? panel.kind : null;
           return (
             <li key={l.id} data-testid="manage-lesson">
-              <div className="flex items-center gap-2 px-4 py-3 sm:px-5">
-                <span className="num w-6 shrink-0 text-sm text-muted">{lessonNumber(data, l.id)}</span>
+              <div className="flex items-center gap-1 px-3 py-3 sm:px-5">
+                <span className="num w-7 shrink-0 text-sm text-muted">{lessonNumber(data, l.id)}</span>
                 <div className="min-w-0 flex-1">
                   <div className="ut truncate font-medium">{l.title}</div>
                   <div className="num truncate text-xs text-muted">
-                    {l.duration_minutes} דק׳ · {l.learning_url ? "יש קישור" : "אין קישור"} · {qs.length} שאלות
+                    {l.duration_minutes} דק׳ · {mats.length} חומרים · {qs.length} שאלות
                   </div>
                 </div>
-                <IconBtn label="הזז למעלה" disabled={i === 0} onClick={() => actions.reorderLessons(move(lessonIds, i, i - 1))}>
+                <IconBtn label="הזז למעלה" disabled={i === 0} onClick={() => void run((r) => reorder(r, "lessons", move(lessons, i, i - 1)))}>
                   <IconUp size={18} />
                 </IconBtn>
-                <IconBtn
-                  label="הזז למטה"
-                  disabled={i === lessons.length - 1}
-                  onClick={() => actions.reorderLessons(move(lessonIds, i, i + 1))}
-                >
+                <IconBtn label="הזז למטה" disabled={i === lessons.length - 1} onClick={() => void run((r) => reorder(r, "lessons", move(lessons, i, i + 1)))}>
                   <IconDown size={18} />
                 </IconBtn>
                 <IconBtn label="ערוך שיעור" onClick={() => open({ kind: "lesson", topicId: topic.id, lesson: l })}>
                   <IconEdit size={17} />
                 </IconBtn>
-                <IconBtn label="שאלות מבחן" onClick={() => setExpanded(isOpen ? null : l.id)}>
-                  <IconQuiz size={18} className={cx(isOpen && "text-accent")} />
+                <IconBtn label="חומרי לימוד" active={isOpen === "materials"} onClick={() => setPanel(isOpen === "materials" ? null : { id: l.id, kind: "materials" })}>
+                  <IconLink size={17} />
+                </IconBtn>
+                <IconBtn label="שאלות מבחן" active={isOpen === "questions"} onClick={() => setPanel(isOpen === "questions" ? null : { id: l.id, kind: "questions" })}>
+                  <IconQuiz size={18} />
                 </IconBtn>
                 <IconBtn
                   label="מחק שיעור"
                   danger
                   onClick={() => {
-                    if (confirm(`למחוק את "${l.title}"? ההתקדמות, הציונים והסיכום שלו יימחקו.`)) void actions.deleteLesson(l.id);
+                    if (confirm(`למחוק את "${l.title}"? ההתקדמות, הציונים והסיכום שלו יימחקו.`)) void run((r) => r.remove("lessons", [l.id]));
                   }}
                 >
                   <IconTrash size={17} />
                 </IconBtn>
               </div>
-              {isOpen && <QuestionsPanel lessonId={l.id} questions={qs} open={open} />}
+              {isOpen === "materials" && <MaterialsPanel lessonId={l.id} materials={mats} open={open} />}
+              {isOpen === "questions" && <QuestionsPanel title="שאלות מבחן השיעור" owner={{ lessonId: l.id }} questions={qs} open={open} />}
             </li>
           );
         })}
+        {examOpen && <li><QuestionsPanel title="מבחן סיכום הנושא" owner={{ topicId: topic.id }} questions={examQuestions} open={open} /></li>}
       </ul>
 
-      <div className="px-4 py-3 sm:px-5">
+      <div className="flex flex-wrap gap-2 border-t border-line px-3 py-3 sm:px-5">
         <Button variant="ghost" size="sm" onClick={() => open({ kind: "lesson", topicId: topic.id })} data-testid="add-lesson">
           <IconPlus size={16} /> הוסף שיעור
+        </Button>
+        <Button variant="ghost" size="sm" onClick={() => setPanel(examOpen ? null : { id: topic.id, kind: "questions" })} data-testid="toggle-exam">
+          <IconTrophy size={16} /> מבחן סיכום ({examQuestions.length})
         </Button>
       </div>
     </Card>
   );
 }
 
-function QuestionsPanel({ lessonId, questions, open }: { lessonId: string; questions: QuizQuestion[]; open: (d: Dialog) => void }) {
-  const { actions } = useCourse();
+function MaterialsPanel({ lessonId, materials, open }: { lessonId: string; materials: LessonMaterial[]; open: Open }) {
+  const { run } = useCourse();
   return (
-    <div className="border-t border-dashed border-line bg-surface-2/40 px-4 py-4 anim-rise sm:px-5" data-testid="questions-panel">
-      <div className="mb-3 text-sm font-semibold">שאלות מבחן</div>
-      {questions.length === 0 && <div className="mb-3 text-sm text-muted">אין שאלות עדיין.</div>}
-      <ol className="space-y-2">
-        {questions.map((q, i) => (
-          <li key={q.id} className="flex items-start gap-2 rounded-xl border border-line bg-surface px-3 py-2.5">
-            <span className="num mt-0.5 text-sm text-muted">{i + 1}.</span>
+    <div className="border-t border-dashed border-line bg-surface-2/40 px-4 py-4 anim-rise sm:px-5" data-testid="materials-panel">
+      <div className="mb-3 text-sm font-semibold">חומרי לימוד</div>
+      {materials.length === 0 && <div className="mb-3 text-sm text-muted">אין חומרים עדיין.</div>}
+      <ul className="space-y-2">
+        {materials.map((m, i) => (
+          <li key={m.id} className="flex items-center gap-1 rounded-xl border border-line bg-surface px-3 py-2">
             <div className="min-w-0 flex-1">
-              <div className="ut text-sm font-medium">{q.question}</div>
-              <div className="mt-0.5 truncate text-xs text-success">✓ {q.answers.find((a) => a.is_correct)?.answer}</div>
+              <div className="ut truncate text-sm font-medium">{m.title}</div>
+              <div className="num truncate text-xs text-muted" dir="ltr" style={{ textAlign: "right" }}>
+                {MATERIAL_LABEL[m.type]} · {m.url}
+              </div>
             </div>
-            <IconBtn label="ערוך שאלה" onClick={() => open({ kind: "question", lessonId, question: q })}>
+            <IconBtn label="הזז למעלה" disabled={i === 0} onClick={() => void run((r) => reorder(r, "lesson_materials", move(materials, i, i - 1)))}>
+              <IconUp size={16} />
+            </IconBtn>
+            <IconBtn label="ערוך חומר" onClick={() => open({ kind: "material", lessonId, material: m })}>
               <IconEdit size={16} />
             </IconBtn>
-            <IconBtn
-              label="מחק שאלה"
-              danger
-              onClick={() => {
-                if (confirm("למחוק את השאלה?")) void actions.deleteQuestion(q.id);
-              }}
-            >
+            <IconBtn label="מחק חומר" danger onClick={() => confirm("למחוק את החומר?") && void run((r) => r.remove("lesson_materials", [m.id]))}>
               <IconTrash size={16} />
             </IconBtn>
           </li>
         ))}
+      </ul>
+      <Button variant="secondary" size="sm" className="mt-3" onClick={() => open({ kind: "material", lessonId })} data-testid="add-material">
+        <IconPlus size={16} /> הוסף חומר
+      </Button>
+    </div>
+  );
+}
+
+function QuestionsPanel({ title, owner, questions, open }: { title: string; owner: QuizOwner; questions: QuizQuestion[]; open: Open }) {
+  const { run } = useCourse();
+  return (
+    <div className="border-t border-dashed border-line bg-surface-2/40 px-4 py-4 anim-rise sm:px-5" data-testid="questions-panel">
+      <div className="mb-3 text-sm font-semibold">{title}</div>
+      {questions.length === 0 && <div className="mb-3 text-sm text-muted">אין שאלות עדיין.</div>}
+      <ol className="space-y-2">
+        {questions.map((q, i) => {
+          const correct =
+            q.type === "open" ? q.model_answer : q.options.filter((o) => o.is_correct).map((o) => o.text).join(", ");
+          return (
+            <li key={q.id} className="flex items-start gap-1 rounded-xl border border-line bg-surface px-3 py-2.5">
+              <span className="num mt-0.5 w-5 text-sm text-muted">{i + 1}.</span>
+              <div className="min-w-0 flex-1">
+                <div className="ut text-sm font-medium">{q.question}</div>
+                <div className="mt-0.5 truncate text-xs">
+                  <span className="text-muted">{QUESTION_TYPE_LABEL[q.type]} · </span>
+                  <span className="ut text-success">✓ {correct}</span>
+                </div>
+              </div>
+              <IconBtn label="ערוך שאלה" onClick={() => open({ kind: "question", owner, question: q })}>
+                <IconEdit size={16} />
+              </IconBtn>
+              <IconBtn label="מחק שאלה" danger onClick={() => confirm("למחוק את השאלה?") && void run((r) => r.remove("quiz_questions", [q.id]))}>
+                <IconTrash size={16} />
+              </IconBtn>
+            </li>
+          );
+        })}
       </ol>
-      <Button variant="secondary" size="sm" className="mt-3" onClick={() => open({ kind: "question", lessonId })} data-testid="add-question">
+      <Button variant="secondary" size="sm" className="mt-3" onClick={() => open({ kind: "question", owner })} data-testid="add-question">
         <IconPlus size={16} /> הוסף שאלה
       </Button>
     </div>
-  );
-}
-
-/* ---------------- dialogs ---------------- */
-
-function FormActions({ saving, onCancel, submitLabel = "שמור" }: { saving: boolean; onCancel: () => void; submitLabel?: string }) {
-  return (
-    <div className="mt-6 flex justify-end gap-2">
-      <Button type="button" variant="ghost" onClick={onCancel}>
-        ביטול
-      </Button>
-      <Button type="submit" disabled={saving} data-testid="dialog-submit">
-        {submitLabel}
-      </Button>
-    </div>
-  );
-}
-
-function useSubmit(onClose: () => void) {
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const run = async (fn: () => Promise<void>) => {
-    setSaving(true);
-    setError(null);
-    try {
-      await fn();
-      onClose();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setSaving(false);
-    }
-  };
-  return { saving, error, setError, run };
-}
-
-function CourseDialog({ data, onClose }: { data: CourseData | null; onClose: () => void }) {
-  const { actions } = useCourse();
-  const [title, setTitle] = useState(data?.course.title ?? "");
-  const [description, setDescription] = useState(data?.course.description ?? "");
-  const { saving, error, run } = useSubmit(onClose);
-  return (
-    <Modal title={data ? "עריכת קורס" : "קורס חדש"} onClose={onClose}>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          void run(() =>
-            data
-              ? actions.updateCourse(data.course.id, { title: title.trim(), description: description.trim() })
-              : actions.createCourse({ title: title.trim(), description: description.trim() }),
-          );
-        }}
-        className="space-y-4"
-      >
-        <Field label="שם הקורס">
-          <input required value={title} onChange={(e) => setTitle(e.target.value)} className={inputCls} autoFocus />
-        </Field>
-        <Field label="תיאור">
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className={inputCls} />
-        </Field>
-        {error && <p className="text-sm text-danger">{error}</p>}
-        <FormActions saving={saving} onCancel={onClose} />
-      </form>
-    </Modal>
-  );
-}
-
-function TopicDialog({ courseId, topic, onClose }: { courseId: string; topic?: Topic; onClose: () => void }) {
-  const { actions } = useCourse();
-  const [title, setTitle] = useState(topic?.title ?? "");
-  const [description, setDescription] = useState(topic?.description ?? "");
-  const { saving, error, run } = useSubmit(onClose);
-  return (
-    <Modal title={topic ? "עריכת נושא" : "נושא חדש"} onClose={onClose}>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          const input = { title: title.trim(), description: description.trim() };
-          void run(() => (topic ? actions.updateTopic(topic.id, input) : actions.createTopic(courseId, input)));
-        }}
-        className="space-y-4"
-      >
-        <Field label="שם הנושא">
-          <input required value={title} onChange={(e) => setTitle(e.target.value)} className={inputCls} autoFocus data-testid="topic-title" />
-        </Field>
-        <Field label="תיאור">
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className={inputCls} />
-        </Field>
-        {error && <p className="text-sm text-danger">{error}</p>}
-        <FormActions saving={saving} onCancel={onClose} />
-      </form>
-    </Modal>
-  );
-}
-
-function LessonDialog({ data, topicId, lesson, onClose }: { data: CourseData; topicId: string; lesson?: Lesson; onClose: () => void }) {
-  const { actions } = useCourse();
-  const [title, setTitle] = useState(lesson?.title ?? "");
-  const [description, setDescription] = useState(lesson?.description ?? "");
-  const [duration, setDuration] = useState(String(lesson?.duration_minutes ?? 60));
-  const [url, setUrl] = useState(lesson?.learning_url ?? "");
-  const [topic, setTopic] = useState(lesson?.topic_id ?? topicId);
-  const { saving, error, setError, run } = useSubmit(onClose);
-
-  return (
-    <Modal title={lesson ? "עריכת שיעור" : "שיעור חדש"} onClose={onClose}>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          const learning_url = url.trim() ? normalizeUrl(url) : null;
-          if (url.trim() && !learning_url) return setError("הקישור לא נראה תקין");
-          const input = {
-            title: title.trim(),
-            description: description.trim(),
-            duration_minutes: Math.max(1, Number(duration) || 60),
-            learning_url,
-          };
-          void run(() =>
-            lesson ? actions.updateLesson(lesson.id, { ...input, topic_id: topic }) : actions.createLesson(topic, input),
-          );
-        }}
-        className="space-y-4"
-      >
-        <Field label="שם השיעור">
-          <input required value={title} onChange={(e) => setTitle(e.target.value)} className={inputCls} autoFocus data-testid="lesson-title" />
-        </Field>
-        <Field label="תיאור">
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className={inputCls} />
-        </Field>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="משך מתוכנן (דקות)">
-            <input type="number" min={1} value={duration} onChange={(e) => setDuration(e.target.value)} className={cx(inputCls, "num")} />
-          </Field>
-          <Field label="נושא">
-            <div className="relative">
-              <select value={topic} onChange={(e) => setTopic(e.target.value)} className={cx(inputCls, "appearance-none pe-9")}>
-                {data.topics.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.title}
-                  </option>
-                ))}
-              </select>
-              <IconChevron size={16} className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 -rotate-90 text-muted" />
-            </div>
-          </Field>
-        </div>
-        <Field label="קישור לחומר לימוד" hint="YouTube, אתר, מאמר או מסמך (אופציונלי)">
-          <input dir="ltr" inputMode="url" placeholder="https://" value={url} onChange={(e) => setUrl(e.target.value)} className={inputCls} data-testid="lesson-url" />
-        </Field>
-        {error && <p className="text-sm text-danger">{error}</p>}
-        <FormActions saving={saving} onCancel={onClose} />
-      </form>
-    </Modal>
-  );
-}
-
-function QuestionDialog({ lessonId, question, onClose }: { lessonId: string; question?: QuizQuestion; onClose: () => void }) {
-  const { actions } = useCourse();
-  const [text, setText] = useState(question?.question ?? "");
-  const [answers, setAnswers] = useState<string[]>(() => {
-    const a = question?.answers.map((x) => x.answer) ?? [];
-    return [0, 1, 2, 3].map((i) => a[i] ?? "");
-  });
-  const [correct, setCorrect] = useState(() => Math.max(0, question?.answers.findIndex((a) => a.is_correct) ?? 0));
-  const { saving, error, setError, run } = useSubmit(onClose);
-
-  return (
-    <Modal title={question ? "עריכת שאלה" : "שאלה חדשה"} onClose={onClose}>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (answers.some((a) => !a.trim())) return setError("יש למלא את כל ארבע התשובות");
-          void run(() =>
-            actions.saveQuestion(
-              lessonId,
-              { question: text.trim(), answers: answers.map((a, i) => ({ answer: a.trim(), is_correct: i === correct })) },
-              question?.id,
-            ),
-          );
-        }}
-        className="space-y-4"
-      >
-        <Field label="השאלה">
-          <textarea required value={text} onChange={(e) => setText(e.target.value)} rows={2} className={inputCls} autoFocus data-testid="question-text" />
-        </Field>
-        <fieldset>
-          <legend className="mb-1.5 text-sm font-medium text-ink-2">תשובות · סמן את הנכונה</legend>
-          <div className="space-y-2">
-            {answers.map((a, i) => (
-              <div
-                key={i}
-                className={cx(
-                  "flex items-center gap-2 rounded-xl border p-1.5 pe-2 transition",
-                  correct === i ? "border-success bg-success-soft" : "border-line",
-                )}
-              >
-                <input
-                  value={a}
-                  onChange={(e) => setAnswers(answers.map((x, j) => (j === i ? e.target.value : x)))}
-                  placeholder={`תשובה ${i + 1}`}
-                  className="min-w-0 flex-1 rounded-lg bg-transparent px-2.5 py-2 outline-none placeholder:text-muted"
-                  data-testid="answer-input"
-                />
-                <label className="flex shrink-0 cursor-pointer items-center gap-1.5 text-xs font-medium text-ink-2">
-                  <input type="radio" name="correct" checked={correct === i} onChange={() => setCorrect(i)} className="size-4 accent-[var(--success)]" />
-                  נכונה
-                </label>
-              </div>
-            ))}
-          </div>
-        </fieldset>
-        {error && <p className="text-sm text-danger">{error}</p>}
-        <FormActions saving={saving} onCancel={onClose} />
-      </form>
-    </Modal>
   );
 }

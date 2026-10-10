@@ -1,14 +1,5 @@
-import type {
-  Course,
-  Lesson,
-  LessonAttachment,
-  LessonNote,
-  LessonProgress,
-  QuizAnswer,
-  QuizAttempt,
-  QuizQuestion,
-  Topic,
-} from "../types";
+import { newId } from "../ids";
+import type { ContentRows, CourseSummary, LastResult } from "../types";
 import { assemble } from "./assemble";
 import { NotImplementedError, type Repository } from "./types";
 
@@ -17,210 +8,190 @@ import { NotImplementedError, type Repository } from "./types";
  * Same tables as the SQL schema, stored as one JSON blob in localStorage.
  */
 
-const KEY = "lemidali:db:v1";
+const KEY = "lemidali:db:v2";
 
-interface Db {
-  courses: Course[];
-  topics: Topic[];
-  lessons: Lesson[];
-  progress: LessonProgress[];
-  questions: Omit<QuizQuestion, "answers">[];
-  answers: QuizAnswer[];
-  attempts: QuizAttempt[];
-  notes: LessonNote[];
-  attachments: LessonAttachment[];
-}
+type Row = Record<string, unknown>;
+type Db = Record<string, Row[]>;
 
-const uid = () => crypto.randomUUID();
+const TABLES = [
+  "courses", "topics", "lessons", "lesson_materials", "quizzes", "quiz_questions", "quiz_options",
+  "lesson_progress", "material_views", "quiz_attempts", "answer_log", "lesson_notes", "lesson_attachments",
+] as const;
+
+const PK: Record<string, string> = { lesson_progress: "lesson_id", material_views: "material_id", lesson_notes: "lesson_id" };
+const pk = (table: string) => PK[table] ?? "id";
+
+// [child table, fk column, parent table] — mirrors "on delete cascade" in SQL
+const RELATIONS: [string, string, string][] = [
+  ["topics", "course_id", "courses"],
+  ["lessons", "topic_id", "topics"],
+  ["lesson_materials", "lesson_id", "lessons"],
+  ["quizzes", "lesson_id", "lessons"],
+  ["quizzes", "topic_id", "topics"],
+  ["quiz_questions", "quiz_id", "quizzes"],
+  ["quiz_options", "question_id", "quiz_questions"],
+  ["lesson_progress", "lesson_id", "lessons"],
+  ["material_views", "material_id", "lesson_materials"],
+  ["quiz_attempts", "quiz_id", "quizzes"],
+  ["answer_log", "question_id", "quiz_questions"],
+  ["answer_log", "attempt_id", "quiz_attempts"],
+  ["lesson_notes", "lesson_id", "lessons"],
+  ["lesson_attachments", "lesson_id", "lessons"],
+];
+
 const now = () => new Date().toISOString();
 
-/** Mirrors supabase/seed.sql — placeholder content only. */
-function demoDb(): Db {
-  const c = "00000000-0000-4000-8000-000000000001";
-  const t1 = "00000000-0000-4000-8000-000000000101";
-  const t2 = "00000000-0000-4000-8000-000000000102";
-  const l1 = "00000000-0000-4000-8000-000000000201";
-  const l2 = "00000000-0000-4000-8000-000000000202";
-  const l3 = "00000000-0000-4000-8000-000000000203";
-  const q1 = "00000000-0000-4000-8000-000000000301";
-  const q2 = "00000000-0000-4000-8000-000000000302";
-  const lesson = (id: string, topic_id: string, title: string, position: number, url: string | null): Lesson => ({
-    id,
-    topic_id,
-    title,
-    description: "Placeholder lesson description.",
-    position,
-    duration_minutes: 60,
-    learning_url: url,
-  });
-  const answers = (qid: string, correct: number): QuizAnswer[] =>
-    ["Answer A", "Answer B", "Answer C", "Answer D"].map((answer, i) => ({
-      id: uid(),
-      question_id: qid,
-      answer,
-      is_correct: i === correct,
-      position: i,
-    }));
-  return {
-    courses: [{ id: c, title: "My Learning Course", description: "Placeholder course description." }],
-    topics: [
-      { id: t1, course_id: c, title: "Topic 1", description: "Placeholder topic description.", position: 0 },
-      { id: t2, course_id: c, title: "Topic 2", description: "Placeholder topic description.", position: 1 },
-    ],
-    lessons: [
-      lesson(l1, t1, "Lesson 1", 0, "https://example.com"),
-      lesson(l2, t1, "Lesson 2", 1, null),
-      lesson(l3, t2, "Lesson 3", 0, null),
-    ],
-    progress: [],
-    questions: [
-      { id: q1, lesson_id: l1, question: "Placeholder question 1?", position: 0 },
-      { id: q2, lesson_id: l1, question: "Placeholder question 2?", position: 1 },
-    ],
-    answers: [...answers(q1, 0), ...answers(q2, 2)],
-    attempts: [],
-    notes: [],
-    attachments: [],
-  };
-}
-
 function read(): Db {
+  let db: Db = {};
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return JSON.parse(raw) as Db;
+    if (raw) db = JSON.parse(raw) as Db;
   } catch {
-    /* fall through to demo */
+    /* start empty */
   }
-  const db = demoDb();
-  write(db);
+  for (const t of TABLES) db[t] ??= [];
   return db;
 }
 
 function write(db: Db) {
   try {
     localStorage.setItem(KEY, JSON.stringify(db));
-  } catch {
-    /* storage unavailable (private mode) — state lives for this tab only */
+  } catch (e) {
+    throw new Error(`שמירה בדפדפן נכשלה (${e instanceof Error ? e.message : e})`);
   }
 }
 
-/** Run a mutation against the stored db and persist it. */
-function tx(fn: (db: Db) => void) {
+function tx<T>(fn: (db: Db) => T): T {
   const db = read();
-  fn(db);
+  const out = fn(db);
   write(db);
+  return out;
 }
 
-function removeLessonsCascade(db: Db, lessonIds: Set<string>) {
-  const qIds = new Set(db.questions.filter((q) => lessonIds.has(q.lesson_id)).map((q) => q.id));
-  db.lessons = db.lessons.filter((l) => !lessonIds.has(l.id));
-  db.progress = db.progress.filter((p) => !lessonIds.has(p.lesson_id));
-  db.questions = db.questions.filter((q) => !qIds.has(q.id));
-  db.answers = db.answers.filter((a) => !qIds.has(a.question_id));
-  db.attempts = db.attempts.filter((a) => !lessonIds.has(a.lesson_id));
-  db.notes = db.notes.filter((n) => !lessonIds.has(n.lesson_id));
-  db.attachments = db.attachments.filter((a) => !lessonIds.has(a.lesson_id));
+function upsertRows(db: Db, table: string, rows: Row[]) {
+  const key = pk(table);
+  const index = new Map(db[table].map((r, i) => [r[key], i]));
+  for (const row of rows) {
+    const i = index.get(row[key]);
+    if (i === undefined) {
+      index.set(row[key], db[table].length);
+      db[table].push({ ...row });
+    } else db[table][i] = { ...db[table][i], ...row };
+  }
 }
 
-const nextPos = (items: { position: number }[]) =>
-  items.reduce((m, i) => Math.max(m, i.position + 1), 0);
+function cascadeDelete(db: Db, table: string, keys: Set<unknown>) {
+  if (!keys.size) return;
+  const key = pk(table);
+  db[table] = db[table].filter((r) => !keys.has(r[key]));
+  for (const [child, fk, parent] of RELATIONS) {
+    if (parent !== table) continue;
+    const doomed = new Set(db[child].filter((r) => keys.has(r[fk])).map((r) => r[pk(child)]));
+    cascadeDelete(db, child, doomed);
+  }
+}
+
+function lastResults(db: Db): LastResult[] {
+  const latest = new Map<string, LastResult>();
+  for (const r of db.answer_log as unknown as (LastResult & { answered_at: string })[]) {
+    const prev = latest.get(r.question_id);
+    if (!prev || r.answered_at >= prev.answered_at)
+      latest.set(r.question_id, { question_id: r.question_id, is_correct: r.is_correct, answered_at: r.answered_at });
+  }
+  return [...latest.values()];
+}
 
 export const localRepo: Repository = {
   mode: "local",
 
-  async load() {
+  async listCourses() {
+    return read().courses.map(({ id, key, title, is_active }) => ({ id, key, title, is_active }) as CourseSummary);
+  },
+
+  async load(courseId) {
     const db = read();
-    const course = db.courses[0];
+    const course = (courseId
+      ? db.courses.find((c) => c.id === courseId)
+      : db.courses.find((c) => c.is_active) ?? db.courses[0]) as unknown as ContentRows["course"] | undefined;
     if (!course) return null;
-    const topics = db.topics.filter((t) => t.course_id === course.id);
-    const topicIds = new Set(topics.map((t) => t.id));
     return assemble({
       course,
-      topics,
-      lessons: db.lessons.filter((l) => topicIds.has(l.topic_id)),
-      progress: db.progress,
-      questions: db.questions,
-      answers: db.answers,
-      attempts: db.attempts,
-      notes: db.notes,
-      attachments: db.attachments,
+      topics: db.topics as never,
+      lessons: db.lessons as never,
+      materials: db.lesson_materials as never,
+      quizzes: db.quizzes as never,
+      questions: db.quiz_questions as never,
+      options: db.quiz_options as never,
+      progress: db.lesson_progress as never,
+      materialViews: db.material_views as never,
+      attempts: db.quiz_attempts as never,
+      lastResults: lastResults(db),
+      notes: db.lesson_notes as never,
+      attachments: db.lesson_attachments as never,
     });
   },
 
-  async createCourse(input) {
-    tx((db) => db.courses.push({ id: uid(), ...input }));
-  },
-  async updateCourse(id, patch) {
+  async setActiveCourse(id) {
     tx((db) => {
-      db.courses = db.courses.map((c) => (c.id === id ? { ...c, ...patch } : c));
+      db.courses = db.courses.map((c) => ({ ...c, is_active: c.id === id }));
     });
   },
 
-  async createTopic(courseId, input) {
-    tx((db) =>
-      db.topics.push({
-        id: uid(),
-        course_id: courseId,
-        ...input,
-        position: nextPos(db.topics.filter((t) => t.course_id === courseId)),
-      }),
-    );
-  },
-  async updateTopic(id, patch) {
-    tx((db) => {
-      db.topics = db.topics.map((t) => (t.id === id ? { ...t, ...patch } : t));
-    });
-  },
-  async deleteTopic(id) {
-    tx((db) => {
-      removeLessonsCascade(db, new Set(db.lessons.filter((l) => l.topic_id === id).map((l) => l.id)));
-      db.topics = db.topics.filter((t) => t.id !== id);
-    });
-  },
-  async reorderTopics(ids) {
-    tx((db) => {
-      db.topics = db.topics.map((t) => (ids.includes(t.id) ? { ...t, position: ids.indexOf(t.id) } : t));
-    });
+  async upsert(table, rows) {
+    tx((db) => upsertRows(db, table, rows as unknown as Row[]));
   },
 
-  async createLesson(topicId, input) {
-    tx((db) =>
-      db.lessons.push({
-        id: uid(),
-        ...input,
-        topic_id: topicId,
-        position: nextPos(db.lessons.filter((l) => l.topic_id === topicId)),
-      }),
-    );
+  async remove(table, ids) {
+    tx((db) => cascadeDelete(db, table, new Set(ids)));
   },
-  async updateLesson(id, patch) {
+
+  async importCourse(rows) {
     tx((db) => {
-      db.lessons = db.lessons.map((l) => {
-        if (l.id !== id) return l;
-        const moved = patch.topic_id && patch.topic_id !== l.topic_id;
-        return {
-          ...l,
-          ...patch,
-          position: moved ? nextPos(db.lessons.filter((x) => x.topic_id === patch.topic_id)) : l.position,
-        };
-      });
-    });
-  },
-  async deleteLesson(id) {
-    tx((db) => removeLessonsCascade(db, new Set([id])));
-  },
-  async reorderLessons(ids) {
-    tx((db) => {
-      db.lessons = db.lessons.map((l) => (ids.includes(l.id) ? { ...l, position: ids.indexOf(l.id) } : l));
+      const cid = rows.course.id;
+      db.courses = db.courses.map((c) => ({ ...c, is_active: false }));
+      upsertRows(db, "courses", [rows.course as unknown as Row]);
+
+      // prune: rows of this course that the file no longer contains
+      const keep = (list: { id: string }[]) => new Set(list.map((r) => r.id));
+      const prune = (table: string, inScope: (r: Row) => boolean, keepIds: Set<string>) =>
+        cascadeDelete(db, table, new Set(db[table].filter((r) => inScope(r) && !keepIds.has(r.id as string)).map((r) => r.id)));
+
+      const oldTopicIds = new Set(db.topics.filter((t) => t.course_id === cid).map((t) => t.id));
+      prune("topics", (t) => t.course_id === cid, keep(rows.topics));
+
+      const topicIds = new Set<unknown>([...oldTopicIds, ...rows.topics.map((t) => t.id)]);
+      prune("lessons", (l) => topicIds.has(l.topic_id), keep(rows.lessons));
+
+      const lessonIds = new Set<unknown>([
+        ...db.lessons.filter((l) => topicIds.has(l.topic_id)).map((l) => l.id),
+        ...rows.lessons.map((l) => l.id),
+      ]);
+      prune("lesson_materials", (m) => lessonIds.has(m.lesson_id), keep(rows.materials));
+      prune("quizzes", (q) => lessonIds.has(q.lesson_id) || topicIds.has(q.topic_id), keep(rows.quizzes));
+
+      const quizIds = new Set<unknown>([
+        ...db.quizzes.filter((q) => lessonIds.has(q.lesson_id) || topicIds.has(q.topic_id)).map((q) => q.id),
+        ...rows.quizzes.map((q) => q.id),
+      ]);
+      prune("quiz_questions", (q) => quizIds.has(q.quiz_id), keep(rows.questions));
+      const questionIds = new Set<unknown>(rows.questions.map((q) => q.id));
+      prune("quiz_options", (o) => questionIds.has(o.question_id), keep(rows.options));
+
+      upsertRows(db, "topics", rows.topics as unknown as Row[]);
+      upsertRows(db, "lessons", rows.lessons as unknown as Row[]);
+      upsertRows(db, "lesson_materials", rows.materials as unknown as Row[]);
+      upsertRows(db, "quizzes", rows.quizzes as unknown as Row[]);
+      upsertRows(db, "quiz_questions", rows.questions as unknown as Row[]);
+      upsertRows(db, "quiz_options", rows.options as unknown as Row[]);
     });
   },
 
   async upsertProgress(lessonId, patch) {
     tx((db) => {
-      const existing = db.progress.find((p) => p.lesson_id === lessonId);
+      const existing = db.lesson_progress.find((p) => p.lesson_id === lessonId);
       if (existing) Object.assign(existing, patch);
       else
-        db.progress.push({
+        db.lesson_progress.push({
           lesson_id: lessonId,
           status: "not_started",
           material_completed: false,
@@ -231,42 +202,34 @@ export const localRepo: Repository = {
     });
   },
 
-  async saveQuestion(lessonId, input, id) {
+  async setMaterialViewed(materialId, viewed) {
     tx((db) => {
-      let qid = id;
-      if (qid) {
-        db.questions = db.questions.map((q) => (q.id === qid ? { ...q, question: input.question } : q));
-        db.answers = db.answers.filter((a) => a.question_id !== qid);
-      } else {
-        qid = uid();
-        db.questions.push({
-          id: qid,
-          lesson_id: lessonId,
-          question: input.question,
-          position: nextPos(db.questions.filter((q) => q.lesson_id === lessonId)),
-        });
-      }
-      input.answers.forEach((a, i) =>
-        db.answers.push({ id: uid(), question_id: qid!, answer: a.answer, is_correct: a.is_correct, position: i }),
-      );
-    });
-  },
-  async deleteQuestion(id) {
-    tx((db) => {
-      db.questions = db.questions.filter((q) => q.id !== id);
-      db.answers = db.answers.filter((a) => a.question_id !== id);
+      db.material_views = db.material_views.filter((v) => v.material_id !== materialId);
+      if (viewed) db.material_views.push({ material_id: materialId, viewed_at: now() });
     });
   },
 
-  async addQuizAttempt(lessonId, score, total) {
-    tx((db) => db.attempts.push({ id: uid(), lesson_id: lessonId, score, total, completed_at: now() }));
+  async recordAttempt(quizId, result, answers) {
+    tx((db) => {
+      const id = newId();
+      const at = now();
+      db.quiz_attempts.push({ id, quiz_id: quizId, ...result, completed_at: at });
+      for (const a of answers) db.answer_log.push({ id: newId(), ...a, attempt_id: id, answered_at: at });
+    });
+  },
+
+  async logAnswers(answers) {
+    tx((db) => {
+      const at = now();
+      for (const a of answers) db.answer_log.push({ id: newId(), ...a, attempt_id: null, answered_at: at });
+    });
   },
 
   async saveNote(lessonId, content) {
     const updated_at = now();
     tx((db) => {
-      db.notes = db.notes.filter((n) => n.lesson_id !== lessonId);
-      db.notes.push({ lesson_id: lessonId, content, updated_at });
+      db.lesson_notes = db.lesson_notes.filter((n) => n.lesson_id !== lessonId);
+      db.lesson_notes.push({ lesson_id: lessonId, content, updated_at });
     });
     return updated_at;
   },
@@ -275,8 +238,6 @@ export const localRepo: Repository = {
     throw new NotImplementedError("File storage");
   },
   async deleteAttachment(id) {
-    tx((db) => {
-      db.attachments = db.attachments.filter((a) => a.id !== id);
-    });
+    tx((db) => cascadeDelete(db, "lesson_attachments", new Set([id])));
   },
 };

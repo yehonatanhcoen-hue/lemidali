@@ -1,44 +1,43 @@
 import type {
-  Course,
+  AnswerRecord,
+  AttemptResult,
+  ContentRows,
+  ContentTable,
+  ContentTables,
   CourseData,
-  LessonInput,
+  CourseSummary,
   ProgressPatch,
-  QuestionInput,
-  TopicInput,
 } from "../types";
 
 /**
  * Single seam between the UI and storage.
  * Supabase is the real backend; a localStorage implementation is used
- * automatically when Supabase env vars are missing, so the app runs out of the box.
+ * automatically when Supabase env vars are missing.
+ *
+ * Content editing is generic (upsert/remove rows): ids and keys are computed
+ * by the caller (see lib/edit.ts), so both backends stay thin.
  */
 export interface Repository {
   readonly mode: "supabase" | "local";
 
-  /** Loads the active course (first course), or null if none exists yet. */
-  load(): Promise<CourseData | null>;
+  listCourses(): Promise<CourseSummary[]>;
+  /** Loads the given course, or the active one (falls back to the first). null if none exist. */
+  load(courseId?: string): Promise<CourseData | null>;
+  setActiveCourse(id: string): Promise<void>;
 
-  createCourse(input: { title: string; description: string }): Promise<void>;
-  updateCourse(id: string, patch: Partial<Omit<Course, "id">>): Promise<void>;
+  upsert<T extends ContentTable>(table: T, rows: ContentTables[T][]): Promise<void>;
+  /** Deletes rows and everything that depends on them (incl. learner state). */
+  remove(table: ContentTable, ids: string[]): Promise<void>;
 
-  createTopic(courseId: string, input: TopicInput): Promise<void>;
-  updateTopic(id: string, patch: Partial<TopicInput>): Promise<void>;
-  deleteTopic(id: string): Promise<void>;
-  /** ids in the desired order */
-  reorderTopics(ids: string[]): Promise<void>;
-
-  createLesson(topicId: string, input: LessonInput): Promise<void>;
-  updateLesson(id: string, patch: Partial<LessonInput>): Promise<void>;
-  deleteLesson(id: string): Promise<void>;
-  reorderLessons(ids: string[]): Promise<void>;
+  /** Upserts all rows of one course, deletes its rows not in `rows`, makes it active. */
+  importCourse(rows: ContentRows): Promise<void>;
 
   upsertProgress(lessonId: string, patch: ProgressPatch): Promise<void>;
-
-  /** Creates (no id) or replaces (id) a question and its answers. */
-  saveQuestion(lessonId: string, input: QuestionInput, id?: string): Promise<void>;
-  deleteQuestion(id: string): Promise<void>;
-
-  addQuizAttempt(lessonId: string, score: number, total: number): Promise<void>;
+  setMaterialViewed(materialId: string, viewed: boolean): Promise<void>;
+  /** A full quiz run: stores the attempt and every answer. */
+  recordAttempt(quizId: string, result: AttemptResult, answers: AnswerRecord[]): Promise<void>;
+  /** Mistakes practice: stores answers only (updates "my mistakes"). */
+  logAnswers(answers: AnswerRecord[]): Promise<void>;
 
   saveNote(lessonId: string, content: string): Promise<string /* updated_at */>;
 

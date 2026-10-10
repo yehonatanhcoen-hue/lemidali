@@ -1,181 +1,246 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useLayoutEffect, useState } from "react";
 import { useCourse } from "@/lib/store";
-import type { Lesson, LessonProgress } from "@/lib/types";
-import { KIND_LABEL, hostname, materialKind, normalizeUrl, youtubeId } from "@/lib/url";
-import { IconCheck, IconEdit, IconExternal, IconFile, IconGlobe, IconLink, IconPlay, IconVideo } from "../icons";
-import { Button, cx, inputCls } from "../ui";
+import type { LessonMaterial, LessonProgress, MaterialType } from "@/lib/types";
+import { hostname, youtubeId } from "@/lib/url";
+import { IconArticle, IconCheck, IconClock, IconExternal, IconFile, IconLink, IconPlay, IconVideo, IconX } from "../icons";
+import { cx } from "../ui";
 
-export function MaterialSection({ lesson, progress }: { lesson: Lesson; progress: LessonProgress }) {
-  const { actions } = useCourse();
-  const [editing, setEditing] = useState(false);
+export const MATERIAL_LABEL: Record<MaterialType, string> = {
+  video: "סרטון",
+  article: "מאמר",
+  pdf: "PDF",
+  document: "מסמך",
+  link: "קישור",
+};
+
+const ICON: Record<MaterialType, typeof IconLink> = {
+  video: IconVideo,
+  article: IconArticle,
+  pdf: IconFile,
+  document: IconFile,
+  link: IconLink,
+};
+
+export function MaterialSection({
+  lessonId,
+  materials,
+  views,
+  progress,
+}: {
+  lessonId: string;
+  materials: LessonMaterial[];
+  views: Record<string, string>;
+  progress: LessonProgress;
+}) {
+  const { run } = useCourse();
   const [busy, setBusy] = useState(false);
-  const url = lesson.learning_url;
+  const viewedCount = materials.filter((m) => views[m.id]).length;
+  const minutes = materials.reduce((s, m) => s + (m.duration_minutes ?? 0), 0);
 
-  const toggleDone = async () => {
+  /** Marking a material keeps lesson_progress.material_completed in sync (all viewed ⇔ done). */
+  const setViewed = async (m: LessonMaterial, viewed: boolean) => {
     setBusy(true);
-    const next = !progress.material_completed;
-    await actions.upsertProgress(lesson.id, {
-      material_completed: next,
-      ...(progress.status === "not_started" ? { status: "in_progress" } : {}),
+    const allViewed = materials.every((x) => (x.id === m.id ? viewed : Boolean(views[x.id])));
+    await run(async (repo) => {
+      await repo.setMaterialViewed(m.id, viewed);
+      if (allViewed !== progress.material_completed || progress.status === "not_started")
+        await repo.upsertProgress(lessonId, {
+          material_completed: allViewed,
+          ...(progress.status === "not_started" ? { status: "in_progress" } : {}),
+        });
     });
     setBusy(false);
   };
 
-  return (
-    <div className="space-y-5">
-      {url && !editing ? (
-        <MaterialCard url={url} onEdit={() => setEditing(true)} />
-      ) : (
-        <UrlForm
-          initial={url ?? ""}
-          onCancel={url ? () => setEditing(false) : undefined}
-          onSave={async (value) => {
-            await actions.updateLesson(lesson.id, { learning_url: value });
-            setEditing(false);
-          }}
-        />
-      )}
-
-      <button
-        onClick={toggleDone}
-        disabled={busy}
-        aria-pressed={progress.material_completed}
-        data-testid="material-done"
-        className={cx(
-          "flex w-full items-center gap-3 rounded-xl border px-4 py-3.5 text-start transition active:scale-[0.99]",
-          progress.material_completed
-            ? "border-success/40 bg-success-soft text-success"
-            : "border-line bg-surface hover:border-accent/50 hover:bg-surface-2",
-        )}
-      >
-        <span
-          className={cx(
-            "grid size-6 shrink-0 place-items-center rounded-md border-2 transition",
-            progress.material_completed ? "border-success bg-success text-white" : "border-line",
-          )}
-        >
-          {progress.material_completed && <IconCheck size={14} strokeWidth={3} className="anim-pop" />}
-        </span>
-        <span className="font-medium">השלמתי את חומר הלימוד</span>
-        {progress.material_completed && <span className="ms-auto text-sm opacity-80">השלב הבא זמין ↓</span>}
-      </button>
-    </div>
-  );
-}
-
-function MaterialCard({ url, onEdit }: { url: string; onEdit: () => void }) {
-  const kind = materialKind(url);
-  const yt = youtubeId(url);
-  const KindIcon = kind === "youtube" ? IconVideo : kind === "web" ? IconGlobe : IconFile;
-  return (
-    <div className="overflow-hidden rounded-xl border border-line bg-surface-2/50 sm:flex" data-testid="material-card">
-      {yt ? (
-        <a href={url} target="_blank" rel="noopener noreferrer" className="group relative block aspect-video bg-black sm:w-64 sm:shrink-0">
-          {/* eslint-disable-next-line @next/next/no-img-element -- remote thumbnail, no optimization needed */}
-          <img
-            src={`https://i.ytimg.com/vi/${yt}/hqdefault.jpg`}
-            alt=""
-            className="size-full object-cover opacity-90 transition group-hover:opacity-100"
-          />
-          <span className="absolute inset-0 grid place-items-center">
-            <span className="grid size-12 place-items-center rounded-full bg-black/60 text-white backdrop-blur transition group-hover:scale-110">
-              <IconPlay size={20} />
-            </span>
-          </span>
-        </a>
-      ) : (
-        <div className="grid h-28 place-items-center bg-accent-soft text-accent sm:h-auto sm:w-40 sm:shrink-0">
-          <KindIcon size={36} strokeWidth={1.5} />
-        </div>
-      )}
-      <div className="flex min-w-0 flex-1 flex-col gap-3 p-4 sm:p-5">
-        <div className="min-w-0">
-          <div className="text-xs font-medium text-muted">{KIND_LABEL[kind]}</div>
-          <div className="mt-0.5 truncate font-semibold">{hostname(url)}</div>
-          <div className="mt-0.5 truncate text-sm text-muted" dir="ltr" style={{ textAlign: "right" }}>
-            {url}
-          </div>
-        </div>
-        <div className="mt-auto flex flex-wrap gap-2">
-          <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex h-10 items-center gap-2 rounded-xl bg-accent px-4 text-sm font-medium text-accent-ink transition hover:brightness-110 active:scale-[0.98]"
-            data-testid="open-material"
-          >
-            <IconExternal size={17} />
-            פתח חומר לימוד
-          </a>
-          <Button variant="ghost" onClick={onEdit}>
-            <IconEdit size={16} />
-            ערוך קישור
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function UrlForm({
-  initial,
-  onSave,
-  onCancel,
-}: {
-  initial: string;
-  onSave: (url: string | null) => Promise<void>;
-  onCancel?: () => void;
-}) {
-  const [value, setValue] = useState(initial);
-  const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmed = value.trim();
-    const url = trimmed ? normalizeUrl(trimmed) : null;
-    if (trimmed && !url) return setError("הכתובת לא נראית תקינה");
-    setSaving(true);
-    await onSave(url);
-    setSaving(false);
+  const toggleManual = async () => {
+    setBusy(true);
+    await run((repo) =>
+      repo.upsertProgress(lessonId, {
+        material_completed: !progress.material_completed,
+        ...(progress.status === "not_started" ? { status: "in_progress" } : {}),
+      }),
+    );
+    setBusy(false);
   };
 
+  if (materials.length === 0)
+    return (
+      <div className="space-y-4">
+        <div className="rounded-xl border border-dashed border-line px-5 py-6 text-center text-sm text-muted">
+          אין חומרי לימוד לשיעור הזה. אפשר להוסיף בקובץ הקורס או ב
+          <Link href="/manage" className="text-accent hover:underline">
+            עמוד הניהול
+          </Link>
+          .
+        </div>
+        <DoneToggle checked={progress.material_completed} onClick={toggleManual} disabled={busy} label="השלמתי את חומר הלימוד" />
+      </div>
+    );
+
   return (
-    <form onSubmit={submit} className="rounded-xl border border-dashed border-line p-4 sm:p-5">
-      <label htmlFor="learning-url" className="mb-2 flex items-center gap-2 text-sm font-medium text-ink-2">
-        <IconLink size={17} />
-        קישור לחומר הלימוד
-      </label>
-      <p className="mb-3 text-xs text-muted">סרטון YouTube, אתר, מאמר או מסמך</p>
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <input
-          id="learning-url"
-          type="text"
-          inputMode="url"
-          dir="ltr"
-          placeholder="https://"
-          value={value}
-          onChange={(e) => {
-            setValue(e.target.value);
-            setError(null);
-          }}
-          className={cx(inputCls, "flex-1")}
-          data-testid="url-input"
-        />
-        <div className="flex gap-2">
-          <Button type="submit" disabled={saving} className="flex-1 sm:flex-none">
-            שמור
-          </Button>
-          {onCancel && (
-            <Button type="button" variant="ghost" onClick={onCancel}>
-              ביטול
-            </Button>
-          )}
+    <div className="space-y-4">
+      <div className="num flex flex-wrap items-center justify-between gap-2 text-sm text-ink-2">
+        <span>
+          {materials.length} פריטים{minutes > 0 && ` · כ-${minutes} דק׳`}
+        </span>
+        <span className={cx(viewedCount === materials.length ? "text-success" : "text-muted")} data-testid="materials-count">
+          נצפו {viewedCount} מתוך {materials.length}
+        </span>
+      </div>
+      <ul className="space-y-3">
+        {materials.map((m) => (
+          <MaterialItem key={m.id} m={m} viewed={Boolean(views[m.id])} busy={busy} onViewed={(v) => void setViewed(m, v)} />
+        ))}
+      </ul>
+      {progress.material_completed && (
+        <div className="rounded-xl bg-success-soft px-4 py-3 text-sm font-medium text-success anim-rise" data-testid="material-done-banner">
+          ✓ סיימת את חומר הלימוד — השלב הבא זמין
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MaterialItem({
+  m,
+  viewed,
+  busy,
+  onViewed,
+}: {
+  m: LessonMaterial;
+  viewed: boolean;
+  busy: boolean;
+  onViewed: (v: boolean) => void;
+}) {
+  const yt = m.type === "video" ? youtubeId(m.url) : null;
+  const [playing, setPlaying] = useState(false);
+  const Icon = ICON[m.type];
+  // Next.js keeps visited pages mounted but hidden (<Activity>); stop the video when this page is hidden.
+  useLayoutEffect(() => () => setPlaying(false), []);
+
+  return (
+    <li
+      className={cx("overflow-hidden rounded-xl border transition-colors", viewed ? "border-success/40" : "border-line")}
+      data-testid="material-item"
+      data-viewed={viewed}
+    >
+      {yt && playing && (
+        <div className="relative aspect-video bg-black">
+          <iframe
+            src={`https://www.youtube-nocookie.com/embed/${yt}?autoplay=1&rel=0`}
+            title={m.title}
+            allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+            allowFullScreen
+            className="absolute inset-0 size-full"
+          />
+        </div>
+      )}
+      <div className="flex gap-3 p-3 sm:gap-4 sm:p-4">
+        {yt && !playing ? (
+          <button
+            onClick={() => setPlaying(true)}
+            className="group relative aspect-video w-28 shrink-0 overflow-hidden rounded-lg bg-black sm:w-40"
+            aria-label={`נגן: ${m.title}`}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element -- remote thumbnail */}
+            <img src={`https://i.ytimg.com/vi/${yt}/mqdefault.jpg`} alt="" className="size-full object-cover opacity-90 group-hover:opacity-100" />
+            <span className="absolute inset-0 grid place-items-center">
+              <span className="grid size-9 place-items-center rounded-full bg-black/60 text-white transition group-hover:scale-110">
+                <IconPlay size={16} />
+              </span>
+            </span>
+          </button>
+        ) : (
+          !playing && (
+            <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent">
+              <Icon size={22} />
+            </span>
+          )
+        )}
+        <div className="min-w-0 flex-1">
+          <div className="ut font-semibold leading-snug">{m.title}</div>
+          <div className="num mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-muted">
+            <span>{MATERIAL_LABEL[m.type]}</span>
+            {m.duration_minutes && (
+              <span className="flex items-center gap-1">
+                · <IconClock size={12} /> {m.duration_minutes} דק׳
+              </span>
+            )}
+            <span className="truncate" dir="ltr">
+              · {hostname(m.url)}
+            </span>
+          </div>
+          {m.note && <div className="ut mt-1 text-sm text-ink-2">{m.note}</div>}
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {yt && (
+              <button
+                onClick={() => setPlaying(!playing)}
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-accent px-3 text-sm font-medium text-accent-ink transition hover:brightness-110"
+                data-testid="play-here"
+              >
+                {playing ? <IconX size={15} /> : <IconPlay size={14} />}
+                {playing ? "סגור נגן" : "נגן כאן"}
+              </button>
+            )}
+            <a
+              href={m.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cx(
+                "inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-medium transition",
+                yt ? "border border-line hover:bg-surface-2" : "bg-accent text-accent-ink hover:brightness-110",
+              )}
+              data-testid="open-material"
+            >
+              <IconExternal size={15} />
+              {yt ? "פתח ב-YouTube" : "פתח"}
+            </a>
+            <button
+              onClick={() => onViewed(!viewed)}
+              disabled={busy}
+              aria-pressed={viewed}
+              className={cx(
+                "ms-auto inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-medium transition",
+                viewed ? "bg-success-soft text-success" : "text-ink-2 hover:bg-surface-2",
+              )}
+              data-testid="material-viewed"
+            >
+              <span
+                className={cx(
+                  "grid size-5 place-items-center rounded-md border-2",
+                  viewed ? "border-success bg-success text-white" : "border-line",
+                )}
+              >
+                {viewed && <IconCheck size={12} strokeWidth={3} className="anim-pop" />}
+              </span>
+              צפיתי
+            </button>
+          </div>
         </div>
       </div>
-      {error && <p className="mt-2 text-sm text-danger">{error}</p>}
-    </form>
+    </li>
+  );
+}
+
+function DoneToggle({ checked, onClick, disabled, label }: { checked: boolean; onClick: () => void; disabled: boolean; label: string }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      aria-pressed={checked}
+      data-testid="material-done"
+      className={cx(
+        "flex w-full items-center gap-3 rounded-xl border px-4 py-3.5 text-start transition active:scale-[0.99]",
+        checked ? "border-success/40 bg-success-soft text-success" : "border-line bg-surface hover:border-accent/50 hover:bg-surface-2",
+      )}
+    >
+      <span className={cx("grid size-6 shrink-0 place-items-center rounded-md border-2 transition", checked ? "border-success bg-success text-white" : "border-line")}>
+        {checked && <IconCheck size={14} strokeWidth={3} className="anim-pop" />}
+      </span>
+      <span className="font-medium">{label}</span>
+    </button>
   );
 }

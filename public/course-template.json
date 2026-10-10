@@ -1,0 +1,137 @@
+{
+  "format": "lemidali-course",
+  "version": 1,
+  "key": "demo-course",
+  "title": "My Learning Course",
+  "description": "Placeholder course — replace with real content.",
+  "passing_score": 80,
+  "lock_until_passed": true,
+  "topics": [
+    {
+      "key": "topic-1",
+      "title": "Topic 1",
+      "description": "Placeholder topic description.",
+      "lessons": [
+        {
+          "key": "lesson-1",
+          "title": "Lesson 1",
+          "description": "Placeholder lesson description.",
+          "duration_minutes": 60,
+          "materials": [
+            {
+              "key": "lesson-1-video",
+              "type": "video",
+              "title": "Placeholder video",
+              "url": "https://example.com/video-1",
+              "duration_minutes": 15
+            },
+            {
+              "key": "lesson-1-article",
+              "type": "article",
+              "title": "Placeholder article",
+              "url": "https://example.com/article-1",
+              "note": "Read sections 1–3."
+            }
+          ],
+          "quiz": {
+            "questions": [
+              {
+                "key": "l1-q1",
+                "type": "single",
+                "question": "Placeholder single-choice question?",
+                "options": ["Answer A", "Answer B", "Answer C", "Answer D"],
+                "correct": 0,
+                "explanation": "Answer A is correct because…"
+              },
+              {
+                "key": "l1-q2",
+                "type": "multiple",
+                "question": "Placeholder multiple-choice question (select all that apply)?",
+                "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
+                "correct": [0, 2],
+                "points": 2
+              },
+              {
+                "key": "l1-q3",
+                "type": "true_false",
+                "question": "Placeholder true/false statement.",
+                "correct": true
+              }
+            ]
+          }
+        },
+        {
+          "key": "lesson-2",
+          "title": "Lesson 2",
+          "description": "Placeholder lesson description.",
+          "duration_minutes": 45,
+          "materials": [
+            {
+              "key": "lesson-2-pdf",
+              "type": "pdf",
+              "title": "Placeholder PDF",
+              "url": "https://example.com/file.pdf"
+            }
+          ],
+          "quiz": {
+            "passing_score": 70,
+            "questions": [
+              {
+                "key": "l2-q1",
+                "type": "open",
+                "question": "Placeholder open question — explain in your own words.",
+                "model_answer": "A good answer mentions…"
+              },
+              {
+                "key": "l2-q2",
+                "type": "single",
+                "question": "Placeholder question?",
+                "options": ["Yes", "No", "Maybe"],
+                "correct": 1
+              }
+            ]
+          }
+        }
+      ],
+      "final_exam": {
+        "title": "Topic 1 — summary exam",
+        "questions": [
+          {
+            "key": "t1-exam-q1",
+            "type": "single",
+            "question": "Placeholder summary question?",
+            "options": ["Answer A", "Answer B", "Answer C", "Answer D"],
+            "correct": 3,
+            "explanation": "Covered in Lesson 1."
+          },
+          {
+            "key": "t1-exam-q2",
+            "type": "true_false",
+            "question": "Placeholder summary statement.",
+            "correct": false
+          }
+        ]
+      }
+    },
+    {
+      "key": "topic-2",
+      "title": "Topic 2",
+      "description": "Placeholder topic description.",
+      "lessons": [
+        {
+          "key": "lesson-3",
+          "title": "Lesson 3",
+          "description": "Placeholder lesson with no quiz.",
+          "materials": [
+            {
+              "key": "lesson-3-link",
+              "type": "link",
+              "title": "Placeholder link",
+              "url": "https://example.com/resource"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -5,13 +5,15 @@ import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { useCourse } from "@/lib/store";
 import type { CourseData } from "@/lib/types";
-import { IconBook, IconChart, IconHome, IconMoon, IconSliders, IconSun } from "./icons";
-import { ButtonLink, Card, Empty, Skeleton, cx } from "./ui";
+import { importDemo } from "@/lib/importer";
+import { IconBook, IconChart, IconHome, IconMoon, IconSliders, IconSun, IconTarget, IconUpload } from "./icons";
+import { Button, ButtonLink, Card, Skeleton, cx } from "./ui";
 
 const NAV = [
   { href: "/", label: "בית", icon: IconHome, match: (p: string) => p === "/" },
   { href: "/course", label: "קורס", icon: IconBook, match: (p: string) => /^\/(course|topics|lessons)/.test(p) },
   { href: "/progress", label: "התקדמות", icon: IconChart, match: (p: string) => p.startsWith("/progress") },
+  { href: "/practice", label: "תרגול", icon: IconTarget, match: (p: string) => p.startsWith("/practice") },
   { href: "/manage", label: "ניהול", icon: IconSliders, match: (p: string) => p.startsWith("/manage") },
 ];
 
@@ -133,7 +135,7 @@ function SideNav({ pathname }: { pathname: string }) {
 
 function BottomNav({ pathname }: { pathname: string }) {
   return (
-      <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-4 border-t border-line bg-surface/90 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t border-line bg-surface/90 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
         {NAV.map(({ href, label, icon: Icon, match }) => {
           const active = match(pathname);
           return (
@@ -170,12 +172,39 @@ export function WithData({ children }: { children: (data: CourseData) => React.R
         </button>
       </Card>
     );
-  if (!data)
-    return (
-      <Empty title="עדיין אין קורס">
-        <p className="mb-4">צור קורס חדש בעמוד הניהול כדי להתחיל.</p>
-        <ButtonLink href="/manage">לעמוד הניהול</ButtonLink>
-      </Empty>
-    );
+  if (!data) return <NoCourse />;
   return <>{children(data)}</>;
+}
+
+function NoCourse() {
+  const { run } = useCourse();
+  const [busy, setBusy] = useState(false);
+  return (
+    <Card className="p-8 text-center sm:p-12" data-testid="no-course">
+      <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-accent-soft text-accent">
+        <IconBook size={26} />
+      </span>
+      <h1 className="mt-5 text-2xl font-bold">עדיין אין קורס</h1>
+      <p className="mx-auto mt-2 max-w-md text-ink-2">
+        ייבא קובץ קורס (JSON) מעמוד הניהול, או טען קורס דמו כדי לראות איך הכל עובד.
+      </p>
+      <div className="mt-6 flex flex-wrap justify-center gap-2">
+        <ButtonLink href="/manage#import">
+          <IconUpload size={17} /> ייבוא קורס
+        </ButtonLink>
+        <Button
+          variant="secondary"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            await run((repo) => importDemo(repo));
+            setBusy(false);
+          }}
+          data-testid="load-demo"
+        >
+          טען קורס דמו
+        </Button>
+      </div>
+    </Card>
+  );
 }
