@@ -97,8 +97,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </div>
 
-      <main className="min-w-0 flex-1 px-4 pt-6 pb-28 sm:px-6 md:px-10 md:pt-10 md:pb-16">
-        <div className="mx-auto max-w-5xl">{children}</div>
+      {/* overflow-x-clip: one long word can never push the whole page sideways on a phone */}
+      <main className="min-w-0 flex-1 overflow-x-clip px-4 pt-5 pb-28 sm:px-6 md:px-8 md:pt-10 md:pb-16 lg:px-12">
+        <div className="mx-auto max-w-5xl 2xl:max-w-6xl">{children}</div>
       </main>
 
       {/* Mobile bottom nav */}

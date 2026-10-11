@@ -35,14 +35,14 @@ function DashboardView({ data }: { data: CourseData }) {
     <div className="space-y-8">
       <header className="anim-rise">
         <div className="mb-2 text-sm font-medium text-muted">הקורס שלי</div>
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{data.course.title}</h1>
+        <h1 className="text-[1.75rem] leading-tight font-bold tracking-tight text-balance sm:text-4xl">{data.course.title}</h1>
         {data.course.description && <p className="mt-2 max-w-2xl text-ink-2">{data.course.description}</p>}
       </header>
 
-      <div className="grid gap-4 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
         {/* the next step comes first — on phones it is the first thing on screen */}
         <ContinueCard data={data} />
-        <Card className="p-6 anim-rise lg:col-span-2" data-testid="overall-progress">
+        <Card className="min-w-0 p-5 anim-rise sm:p-6 lg:col-span-2" data-testid="overall-progress">
           <div className="text-sm font-medium text-ink-2">התקדמות כוללת</div>
           <div className="mt-3 flex items-end justify-between gap-4">
             <div className="num text-5xl font-bold tracking-tight">
@@ -82,7 +82,7 @@ function DashboardView({ data }: { data: CourseData }) {
         {data.topics.length === 0 ? (
           <Empty title="אין עדיין נושאים">הוסף נושאים ושיעורים מעמוד הניהול.</Empty>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {data.topics.map((t, i) => {
               const p = topicProgress(data, t.id);
               const done = p.total > 0 && p.completed === p.total;
@@ -91,12 +91,12 @@ function DashboardView({ data }: { data: CourseData }) {
               const exam = topicExam(data, t.id);
               const examStats = exam && questionsOf(data, exam.id).length ? quizStats(data, exam) : null;
               return (
-                <Link key={t.id} href={routes.topic(t.id)} className="group anim-rise" style={{ animationDelay: `${i * 50}ms` }} data-testid="topic-card">
+                <Link key={t.id} href={routes.topic(t.id)} className="group min-w-0 anim-rise" style={{ animationDelay: `${i * 50}ms` }} data-testid="topic-card">
                   <Card className={cx("flex h-full flex-col p-5 transition group-hover:-translate-y-0.5 group-hover:border-accent/40", locked && "opacity-70")}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="num text-xs font-medium text-muted">נושא {i + 1}</div>
-                        <h3 className="mt-1 truncate text-lg font-semibold">{t.title}</h3>
+                        <h3 className="mt-1 line-clamp-2 text-lg font-semibold leading-snug">{t.title}</h3>
                       </div>
                       {locked ? (
                         <span className="grid size-7 shrink-0 place-items-center rounded-full bg-surface-2 text-muted" title="נעול">
@@ -169,16 +169,16 @@ function ContinueCard({ data }: { data: CourseData }) {
   const resume = status === "in_progress";
 
   return (
-    <Link href={itemHref(next)} className="group anim-rise lg:col-span-3" style={{ animationDelay: "60ms" }} data-testid="continue-card">
-      <div className="relative h-full overflow-hidden rounded-2xl bg-accent p-6 text-accent-ink shadow-[var(--press)] transition group-hover:-translate-y-0.5">
+    <Link href={itemHref(next)} className="group min-w-0 anim-rise lg:col-span-3" style={{ animationDelay: "60ms" }} data-testid="continue-card">
+      <div className="relative h-full overflow-hidden rounded-2xl bg-accent p-5 text-accent-ink sm:p-6 shadow-[var(--press)] transition group-hover:-translate-y-0.5">
         <div className="pointer-events-none absolute -top-16 -left-10 size-56 rounded-full bg-accent-ink/10" aria-hidden />
         <div className="pointer-events-none absolute -bottom-20 left-24 size-40 rounded-full bg-accent-ink/10" aria-hidden />
         <div className="relative flex h-full flex-col">
           <div className="text-sm font-medium opacity-80">{resume ? "המשך מאיפה שעצרת" : "המשך ללמוד"}</div>
-          <div className="num mt-2 text-2xl font-bold sm:text-3xl">
+          <div className="num mt-2 text-2xl font-bold text-balance sm:text-3xl">
             {isExam ? "מבחן סיכום נושא" : `המשך לשיעור ${lessonNumber(data, lesson!.id)}`}
           </div>
-          <div className="ut mt-1 truncate opacity-90">
+          <div className="ut mt-1 line-clamp-2 opacity-90">
             {lesson ? lesson.title : topic?.title}
             {lesson && topic && <span className="opacity-70"> · {topic.title}</span>}
           </div>

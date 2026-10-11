@@ -125,7 +125,7 @@ function CourseCard({ data, open }: { data: CourseData; open: Open }) {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="text-xs font-medium text-muted">קורס פעיל</div>
-          <div className="ut truncate text-lg font-semibold">{c.title}</div>
+          <div className="ut text-lg font-semibold leading-snug">{c.title}</div>
           <div className="num mt-1 text-sm text-ink-2">
             ציון עובר {c.passing_score}% · {c.lock_until_passed ? "נעילה לפי ציון פעילה" : "ללא נעילה"} ·{" "}
             <span dir="ltr" className="text-muted">
@@ -173,7 +173,7 @@ function IconBtn({
       aria-label={label}
       aria-pressed={active}
       className={cx(
-        "grid size-9 shrink-0 place-items-center rounded-lg transition disabled:opacity-30",
+        "grid size-10 shrink-0 place-items-center rounded-lg transition disabled:opacity-30 sm:size-9",
         active ? "bg-accent-soft text-accent" : "text-muted",
         danger ? "hover:bg-danger-soft hover:text-danger" : "hover:bg-surface-2 hover:text-ink",
       )}
@@ -200,11 +200,12 @@ function TopicBlock({ data, topic, index, open }: { data: CourseData; topic: Top
 
   return (
     <Card className="overflow-hidden" data-testid="manage-topic">
-      <div className="flex items-center gap-1 border-b border-line bg-surface-2/50 px-3 py-3 sm:px-5">
-        <div className="min-w-0 flex-1">
+      <div className="flex flex-wrap items-center gap-1 border-b border-line bg-surface-2/50 px-3 py-3 sm:flex-nowrap sm:px-5">
+        <div className="min-w-0 basis-full sm:basis-auto sm:flex-1">
           <div className="num text-xs text-muted">נושא {index + 1}</div>
-          <div className="ut truncate font-semibold">{topic.title}</div>
+          <div className="ut font-semibold leading-snug">{topic.title}</div>
         </div>
+        <div className="-me-1 ms-auto flex shrink-0 items-center">
         <IconBtn label="הזז למעלה" disabled={index === 0} onClick={() => void run((r) => reorder(r, "topics", move(data.topics, index, index - 1)))}>
           <IconUp size={18} />
         </IconBtn>
@@ -223,6 +224,7 @@ function TopicBlock({ data, topic, index, open }: { data: CourseData; topic: Top
         >
           <IconTrash size={17} />
         </IconBtn>
+        </div>
       </div>
 
       <ul className="divide-y divide-line">
@@ -232,14 +234,17 @@ function TopicBlock({ data, topic, index, open }: { data: CourseData; topic: Top
           const isOpen = panel?.id === l.id ? panel.kind : null;
           return (
             <li key={l.id} data-testid="manage-lesson">
-              <div className="flex items-center gap-1 px-3 py-3 sm:px-5">
-                <span className="num w-7 shrink-0 text-sm text-muted">{lessonNumber(data, l.id)}</span>
-                <div className="min-w-0 flex-1">
-                  <div className="ut truncate font-medium">{l.title}</div>
-                  <div className="num truncate text-xs text-muted">
-                    {l.duration_minutes} דק׳ · {mats.length} חומרים · {qs.length} שאלות
+              <div className="flex flex-wrap items-center gap-1 px-3 py-3 sm:flex-nowrap sm:px-5">
+                <div className="flex min-w-0 basis-full items-start sm:basis-auto sm:flex-1">
+                  <span className="num w-7 shrink-0 pt-0.5 text-sm text-muted">{lessonNumber(data, l.id)}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="ut font-medium leading-snug">{l.title}</div>
+                    <div className="num text-xs text-muted">
+                      {l.duration_minutes} דק׳ · {mats.length} חומרים · {qs.length} שאלות
+                    </div>
                   </div>
                 </div>
+                <div className="-me-1 ms-auto flex shrink-0 items-center">
                 <IconBtn label="הזז למעלה" disabled={i === 0} onClick={() => void run((r) => reorder(r, "lessons", move(lessons, i, i - 1)))}>
                   <IconUp size={18} />
                 </IconBtn>
@@ -264,6 +269,7 @@ function TopicBlock({ data, topic, index, open }: { data: CourseData; topic: Top
                 >
                   <IconTrash size={17} />
                 </IconBtn>
+                </div>
               </div>
               {isOpen === "materials" && <MaterialsPanel lessonId={l.id} materials={mats} open={open} />}
               {isOpen === "questions" && <QuestionsPanel title="שאלות מבחן השיעור" owner={{ lessonId: l.id }} questions={qs} open={open} />}

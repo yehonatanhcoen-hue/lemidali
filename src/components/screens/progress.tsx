@@ -95,7 +95,7 @@ function ProgressView({ data }: { data: CourseData }) {
             <Card key={t.id} className="overflow-hidden">
               <div className="p-5">
                 <div className="num mb-2 flex items-baseline justify-between gap-3">
-                  <Link href={routes.topic(t.id)} className="truncate font-semibold hover:text-accent">
+                  <Link href={routes.topic(t.id)} className="min-w-0 font-semibold leading-snug hover:text-accent">
                     <span className="text-muted">נושא {i + 1} · </span>
                     {t.title}
                   </Link>
@@ -106,7 +106,45 @@ function ProgressView({ data }: { data: CourseData }) {
                 <ProgressBar percent={p.percent} size="sm" />
               </div>
               {lessons.length > 0 && (
-                <div className="overflow-x-auto border-t border-line">
+                <ul className="divide-y divide-line border-t border-line sm:hidden" data-testid="progress-list">
+                  {lessons.map((l) => {
+                    const quiz = lessonQuiz(data, l.id);
+                    const qs = quizStats(data, quiz);
+                    const locked = g.get(l.id)?.locked;
+                    return (
+                      <li key={l.id} className={cx(locked && "opacity-60")}>
+                        <Link href={routes.lesson(l.id)} className="flex items-start gap-3 px-4 py-3 active:bg-surface-2">
+                          <span className="num w-6 shrink-0 pt-0.5 text-sm text-muted">{lessonNumber(data, l.id)}</span>
+                          <span className="min-w-0 flex-1">
+                            <span className="ut block font-medium leading-snug">{l.title}</span>
+                            <span className="num mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+                              {locked ? (
+                                <span className="inline-flex items-center gap-1">
+                                  <IconLock size={13} /> נעול
+                                </span>
+                              ) : (
+                                <StatusBadge status={statusOf(data, l.id)} />
+                              )}
+                              {qs.hasQuestions && <span>מבחן: {scoreCell(quiz?.id)}</span>}
+                              {qs.count > 0 && <span>{qs.count} ניסיונות</span>}
+                            </span>
+                          </span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                  {exam && questionsOf(data, exam.id).length > 0 && (
+                    <li className="bg-accent-soft/30">
+                      <Link href={routes.exam(t.id)} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                        <span className="font-medium">🏆 מבחן סיכום</span>
+                        <span className="num text-xs">{g.get(exam.id)?.locked ? "נעול" : scoreCell(exam.id)}</span>
+                      </Link>
+                    </li>
+                  )}
+                </ul>
+              )}
+              {lessons.length > 0 && (
+                <div className="hidden overflow-x-auto border-t border-line sm:block">
                   <table className="num w-full min-w-[540px] text-sm">
                     <thead>
                       <tr className="text-xs text-muted">

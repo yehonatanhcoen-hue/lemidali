@@ -138,17 +138,17 @@ function MaterialItem({
           />
         </div>
       )}
-      <div className="flex gap-3 p-3 sm:gap-4 sm:p-4">
+      <div className={cx("flex gap-3 p-3 sm:flex-row sm:gap-4 sm:p-4", yt && !playing && "flex-col")}>
         {yt && !playing ? (
           <button
             onClick={() => setPlaying(true)}
-            className="group relative aspect-video w-28 shrink-0 overflow-hidden rounded-lg bg-black sm:w-40"
+            className="group relative aspect-video w-full shrink-0 self-start overflow-hidden rounded-lg bg-black sm:w-44"
             aria-label={`נגן: ${m.title}`}
           >
             {/* eslint-disable-next-line @next/next/no-img-element -- remote thumbnail */}
             <img src={`https://i.ytimg.com/vi/${yt}/mqdefault.jpg`} alt="" className="size-full object-cover opacity-90 group-hover:opacity-100" />
             <span className="absolute inset-0 grid place-items-center">
-              <span className="grid size-9 place-items-center rounded-full bg-black/60 text-white transition group-hover:scale-110">
+              <span className="grid size-12 place-items-center rounded-full bg-black/60 text-white transition group-hover:scale-110 sm:size-9">
                 <IconPlay size={16} />
               </span>
             </span>
