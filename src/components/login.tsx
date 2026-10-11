@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { authRedirectUrl } from "@/lib/auth";
 import { getSupabase } from "@/lib/supabase/client";
+import { Logo } from "./logo";
 import { Button, Card, Field, inputCls } from "./ui";
 
 type Mode = "signin" | "signup";
@@ -93,8 +94,8 @@ export function LoginScreen() {
     <div className="grid min-h-dvh place-items-center px-4 py-10">
       <div className="w-full max-w-sm anim-rise">
         <div className="mb-8 text-center">
-          <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-accent text-2xl font-bold text-accent-ink">ל</span>
-          <h1 className="mt-4 text-3xl font-bold tracking-tight">לומדה</h1>
+          <Logo size="lg" />
+          <h1 className="sr-only">לומדה</h1>
           <p className="mt-2 text-ink-2">התחבר כדי שהקורסים וההתקדמות שלך יהיו זמינים בכל מכשיר.</p>
         </div>
 

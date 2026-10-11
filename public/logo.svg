@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+<rect width="512" height="512"  fill="#FFF7EE"/>
+<rect x="40.96000000000001" y="190.66879999999998" width="430.08" height="172.032" rx="86.016" fill="#A8311A"/>
+<rect x="40.96000000000001" y="164.86399999999998" width="430.08" height="172.032" rx="86.016" fill="#D4401F"/>
+<text x="256.0" y="250.88" dy="0.36em" text-anchor="middle" font-family="VR" font-size="96.33792000000001" fill="#fff" direction="rtl">לומדה</text>
+<circle cx="409.10848" cy="171.74527999999998" r="22.364160000000002" fill="#FFC53D"/>
+</svg>

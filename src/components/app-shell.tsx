@@ -9,6 +9,7 @@ import { useCourse } from "@/lib/store";
 import type { CourseData } from "@/lib/types";
 import { importDemo } from "@/lib/importer";
 import { IconBook, IconChart, IconHome, IconMoon, IconPalette, IconSliders, IconSun, IconTarget, IconUpload } from "./icons";
+import { Logo } from "./logo";
 import { Button, ButtonLink, Card, Skeleton, cx } from "./ui";
 
 const NAV = [
@@ -47,12 +48,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-dvh md:flex">
       {/* Sidebar — iPad: icon rail, desktop: full */}
       <aside className="sticky top-0 hidden h-dvh shrink-0 flex-col border-e border-line bg-surface px-3 py-6 md:flex md:w-20 lg:w-64">
-        <Link href="/" className="mb-8 flex items-center gap-3 px-2">
-          <span className="grid size-10 place-items-center rounded-xl bg-accent text-lg font-bold text-accent-ink">ל</span>
-          <span className="hidden min-w-0 lg:block">
-            <span className="block text-base font-bold leading-tight">לומדה</span>
-            <span className="ut block truncate text-xs text-muted">{data?.course.title ?? " "}</span>
+        <Link href="/" className="mb-8 flex flex-col items-center gap-2.5 px-2 lg:items-start" aria-label="לומדה — דף הבית">
+          <span className="lg:hidden">
+            <Logo compact />
           </span>
+          <span className="hidden lg:block">
+            <Logo />
+          </span>
+          <span className="ut hidden w-full truncate text-xs text-muted lg:block">{data?.course.title ?? "\u00a0"}</span>
         </Link>
         <Suspense fallback={<SideNav pathname="" />}>
           <SideNavActive />
@@ -85,9 +88,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Mobile top bar */}
       <div className="sticky top-0 z-20 flex items-center justify-between border-b border-line bg-surface/85 px-4 py-3 backdrop-blur md:hidden">
-        <Link href="/" className="flex items-center gap-2.5">
-          <span className="grid size-8 place-items-center rounded-lg bg-accent text-sm font-bold text-accent-ink">ל</span>
-          <span className="font-bold">לומדה</span>
+        <Link href="/" className="flex items-center" aria-label="לומדה — דף הבית">
+          <Logo size="sm" />
         </Link>
         <div className="flex items-center gap-1">
           <Link href="/appearance" aria-label="מראה וערכות נושא" title="מראה" className="grid size-10 place-items-center rounded-xl text-ink-2 transition hover:bg-surface-2 hover:text-ink">
