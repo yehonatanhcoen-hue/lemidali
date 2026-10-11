@@ -9,7 +9,7 @@ import { Button, Card, Field, inputCls } from "./ui";
 type Mode = "signin" | "signup";
 
 /** Supabase auth messages → Hebrew. */
-function hebrew(message: string): string {
+export function hebrew(message: string): string {
   const m = message.toLowerCase();
   if (m.includes("invalid login credentials")) return "האימייל או הסיסמה שגויים.";
   if (m.includes("email not confirmed")) return "צריך לאשר את כתובת המייל קודם. חפש את מייל האימות בתיבת הדואר (גם בספאם).";
@@ -19,6 +19,9 @@ function hebrew(message: string): string {
     return "התחברות עם Google עוד לא הופעלה בהגדרות Supabase. בינתיים אפשר להתחבר עם אימייל וסיסמה.";
   if (m.includes("already registered")) return "כבר יש חשבון עם המייל הזה. עבור ל\"התחברות\".";
   if (m.includes("password should be at least") || m.includes("weak password")) return "הסיסמה קצרה מדי (לפחות 6 תווים).";
+  if (m.includes("should be different")) return "הסיסמה החדשה חייבת להיות שונה מהנוכחית.";
+  if (m.includes("reauthentication") || m.includes("session missing") || m.includes("session_not_found"))
+    return "צריך להתחבר מחדש לפני החלפת סיסמה. התנתק, התחבר, ונסה שוב.";
   if (m.includes("rate limit") || m.includes("too many")) return "יותר מדי ניסיונות. נסה שוב בעוד כמה דקות.";
   if (m.includes("failed to fetch") || m.includes("network")) return "אין חיבור לשרת. בדוק את החיבור לאינטרנט ונסה שוב.";
   return message;
